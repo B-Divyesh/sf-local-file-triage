@@ -338,6 +338,7 @@ test('@claim:checkout-origin the purchase link and license verification use Soci
   await page.goto('/');
   await expect(page.getByRole('link', { name: /Buy Pro on Sociobot\/Dodo/ })).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/local-file-triage/checkout');
   await page.getByText('Have a license?').click(); await page.getByLabel('License token').fill('fixture-checkout'); await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('Pro active on this device')).toBeVisible();
   expect(calls).toEqual(['https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-checkout']);
 });
 
