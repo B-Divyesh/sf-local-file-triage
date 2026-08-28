@@ -1,0 +1,15 @@
+{
+  "name": "Triagebox — local file triage",
+  "short_name": "Triagebox",
+  "description": "Survey and reversibly organize a folder without uploading a file.",
+  "id": "/?source=pwa",
+  "start_url": "/?v=1",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3eedc",
+  "theme_color": "#245c45",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
