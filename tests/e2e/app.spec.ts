@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 import axe from 'axe-core';
 import { resolve } from 'node:path';
 
+const productOrigin = new URL(process.env.TRIAGEBOX_TEST_BASE_URL ?? 'http://127.0.0.1:4173').origin;
+
 async function installWritableFixture(page: Page, filename = 'private-notes.txt'): Promise<void> {
   await page.addInitScript(name => {
     let bytes = new Uint8Array([7, 8, 9]);
@@ -149,7 +151,7 @@ test('@claim:imported-receipt-export an imported receipt remains visible and exp
 
 test('@claim:local-only demo interactions make no third-party network requests', async ({ page }) => {
   const external: string[] = [];
-  page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
+  page.on('request', request => { if (new URL(request.url()).origin !== productOrigin) external.push(request.url()); });
   await page.goto('/demo');
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Documents');
@@ -179,7 +181,7 @@ test('@claim:real-file-locality selected file details stay local through preview
     Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => root });
   });
   const external: string[] = [];
-  page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
+  page.on('request', request => { if (new URL(request.url()).origin !== productOrigin) external.push(request.url()); });
   await page.goto('/');
   await page.getByRole('button', { name: 'Choose a folder' }).click();
   await expect(page.getByText('private-notes.txt', { exact: true })).toBeVisible();
@@ -261,7 +263,7 @@ test('@claim:storage-boundary demo, real survey, and license storage use the doc
 
 test('@claim:no-tracking-runtime every product route loads only same-origin runtime resources', async ({ page }) => {
   const external: string[] = [];
-  page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
+  page.on('request', request => { if (new URL(request.url()).origin !== productOrigin) external.push(request.url()); });
   for (const path of ['/', '/demo', '/privacy/', '/terms/']) { await page.goto(path); await expect(page.locator('main')).toHaveCount(1); }
   expect(external).toEqual([]);
 });

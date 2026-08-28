@@ -417,7 +417,7 @@ async function boot(): Promise<void> {
   if (path === '/privacy') { setRouteMetadata('Privacy — Triagebox', 'Learn how Triagebox keeps selected file details in this browser.', '/privacy/'); renderLegal('privacy'); registerPwa(); return; }
   if (path === '/terms') { setRouteMetadata('Terms — Triagebox', 'Read the terms for reviewing and moving files with Triagebox.', '/terms/'); renderLegal('terms'); registerPwa(); return; }
   demoMode = path === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
-  if (path !== '/' && path !== '/demo') { setRouteMetadata('Page not found — Triagebox', 'This Triagebox route does not exist. Return home or try the five-file sample.', '/404'); renderNotFound(); registerPwa(); return; }
+  if (path !== '/' && path !== '/demo') { setRouteMetadata('Page not found — Triagebox', 'This Triagebox address does not exist. Return home or try the five-file sample.', '/404'); renderNotFound(); registerPwa(); return; }
   setRouteMetadata(demoMode ? 'Demo — Triagebox' : 'Triagebox — organize files locally', demoMode ? 'Review five sample file destinations without connecting a real folder.' : 'Review proposed file destinations before moving local files.', demoMode ? '/demo' : '/');
   try {
     const saved = await loadSurvey(storageNamespace());
