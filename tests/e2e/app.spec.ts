@@ -113,7 +113,6 @@ test('@claim:local-only demo interactions make no third-party network requests',
 test('@claim:real-file-locality selected file details stay local through preview, move, receipt export, and undo', async ({ page }) => {
   await page.addInitScript(() => {
     let bytes = new Uint8Array([7, 8, 9]);
-    const files = new Map<string, unknown>();
     const directory = (name: string): Record<string, unknown> => {
       const entries = new Map<string, unknown>();
       return {
