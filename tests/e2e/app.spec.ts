@@ -8,7 +8,7 @@ test('home explains safety and offers a useful preview workflow', async ({ page 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder/);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.getByRole('img')).toHaveAttribute('alt', /topographic map/);
-  await page.getByRole('button', { name: 'Load an example survey' }).click();
+  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
   await expect(page.locator('.legend > div').first()).toContainText('5files mapped');
   await expect(page.locator('.file-row')).toHaveCount(5);
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Documents');
@@ -68,7 +68,7 @@ test('@claim:displayed-bulk-controls bulk approval never changes an undisplayed 
 
 test('@claim:review-persistence approvals and destination edits survive a reload', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Load an example survey' }).click();
+  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Archives');
   await page.getByLabel('Destination name for IMG_4821.jpg').fill('revised.jpg');
@@ -110,9 +110,129 @@ test('@claim:local-only demo interactions make no third-party network requests',
   expect(external).toEqual([]);
 });
 
+test('@claim:real-file-locality selected file details stay local through preview, move, receipt export, and undo', async ({ page }) => {
+  await page.addInitScript(() => {
+    let bytes = new Uint8Array([7, 8, 9]);
+    const files = new Map<string, unknown>();
+    const directory = (name: string): Record<string, unknown> => {
+      const entries = new Map<string, unknown>();
+      return {
+        kind: 'directory', name, entriesMap: entries,
+        async *entries() { yield* entries.entries() as IterableIterator<[string, unknown]>; },
+        async getDirectoryHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = directory(child); entries.set(child, created); return created; },
+        async getFileHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = file(child); entries.set(child, created); return created; },
+        async removeEntry(child: string) { if (!entries.delete(child)) throw new DOMException('Missing', 'NotFoundError'); }
+      };
+    };
+    const file = (name: string): Record<string, unknown> => ({
+      kind: 'file', name,
+      async getFile() { return new File([bytes], name, { type: 'text/plain', lastModified: 1_700_000_000_000 }); },
+      async createWritable() { return { async write(data: ArrayBuffer) { bytes = new Uint8Array(data); }, async close() {} }; }
+    });
+    const root = directory('Private folder');
+    (root.entriesMap as Map<string, unknown>).set('private-notes.txt', file('private-notes.txt'));
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => root });
+  });
+  const external: string[] = [];
+  page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Choose a folder' }).click();
+  await expect(page.getByText('private-notes.txt', { exact: true })).toBeVisible();
+  await page.getByLabel('Approve private-notes.txt').check();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Move 1 approved' }).click();
+  await expect(page.getByRole('heading', { name: /1 moved/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Undo this run' }).click();
+  await expect(page.getByRole('heading', { name: /0 moved · 1 undone/ })).toBeVisible();
+  expect(external).toEqual([]);
+});
+
+test('@claim:browser-capabilities desktop folder choice is available and read-only preview can export a plan', async ({ page, context }) => {
+  await page.addInitScript(() => Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => ({}) }));
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose a folder' })).toBeEnabled();
+  const fallback = await context.newPage();
+  await fallback.addInitScript(() => Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: undefined }));
+  await fallback.goto('/');
+  await expect(fallback.getByText('Read-only browser:')).toBeVisible();
+  await fallback.evaluate(() => {
+    const transfer = new DataTransfer(); transfer.items.add(new File(['plan'], 'read-only.txt', { type: 'text/plain' }));
+    const input = document.querySelector<HTMLInputElement>('#folder-input')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: transfer.files }); input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(fallback.getByText('read-only.txt', { exact: true })).toBeVisible();
+  const download = fallback.waitForEvent('download');
+  await fallback.getByRole('button', { name: 'Export plan JSON' }).click();
+  expect((await download).suggestedFilename()).toMatch(/triagebox-plan-.*\.json/);
+  await fallback.close();
+});
+
+test('@claim:storage-boundary demo, real survey, and license storage use the documented separate keys', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-license', route => route.fulfill({ json: { valid: true } }));
+  await page.goto('/demo');
+  await page.getByLabel('Approve IMG_4821.jpg').check();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
+  await page.getByText('Example survey loaded in preview mode.').waitFor();
+  await page.getByText('Have a license?').click();
+  await page.getByLabel('License token').fill('fixture-license');
+  await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('Pro unlocked on this device')).toBeVisible();
+  const storage = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open('triagebox-local', 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const keys = await new Promise<IDBValidKey[]>((resolve, reject) => { const request = db.transaction('surveys').objectStore('surveys').getAllKeys(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); db.close();
+    return { indexedDb: keys.sort(), local: Object.keys(localStorage).filter(key => key.startsWith('sb_license:')).sort() };
+  });
+  expect(storage).toEqual({ indexedDb: ['demo:latest', 'latest'], local: ['sb_license:local-file-triage', 'sb_license:local-file-triage:verdict'] });
+});
+
+test('@claim:no-tracking-runtime every product route loads only same-origin runtime resources', async ({ page }) => {
+  const external: string[] = [];
+  page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
+  for (const path of ['/', '/demo', '/privacy/', '/terms/']) { await page.goto(path); await expect(page.locator('main')).toHaveCount(1); }
+  expect(external).toEqual([]);
+});
+
+test('@claim:free-limit free runs show a 100-file limit and a fixture license removes it', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-pro', route => route.fulfill({ json: { valid: true } }));
+  await page.goto('/');
+  await page.evaluate(() => {
+    const transfer = new DataTransfer(); for (let index = 0; index < 101; index += 1) transfer.items.add(new File([String(index)], `limit-${index}.txt`, { type: 'text/plain' }));
+    const input = document.querySelector<HTMLInputElement>('#folder-input')!; Object.defineProperty(input, 'files', { configurable: true, value: transfer.files }); input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: 'Approve displayed (100)' }).click();
+  await page.getByRole('button', { name: /Show 100 more/ }).click();
+  await page.getByLabel('Approve limit-100.txt').evaluate((input: HTMLInputElement) => input.click());
+  await expect(page.getByRole('button', { name: 'Move first 100 approved' })).toBeVisible();
+  await expect(page.getByText('Free runs move the first 100.')).toHaveText(/The rest remain safely queued/);
+  await page.getByText('Have a license?').click(); await page.getByLabel('License token').fill('fixture-pro'); await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('Pro unlocked on this device')).toBeVisible();
+  await expect(page.getByText('$19 one-time Triagebox Pro license')).toBeVisible();
+});
+
+test('@claim:checkout-origin the purchase link and license verification use Sociobot', async ({ page }) => {
+  const calls: string[] = [];
+  await page.route('https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-checkout', route => { calls.push(route.request().url()); return route.fulfill({ json: { valid: true } }); });
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: /Buy Pro on Sociobot\/Dodo/ })).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/local-file-triage/checkout');
+  await page.getByText('Have a license?').click(); await page.getByLabel('License token').fill('fixture-checkout'); await page.getByRole('button', { name: 'Verify license' }).click();
+  expect(calls).toEqual(['https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-checkout']);
+});
+
+test('@claim:permission-on-action folder permission is requested only when Choose a folder is activated', async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { pickerCalls: number }).pickerCalls = 0; Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => { (window as unknown as { pickerCalls: number }).pickerCalls += 1; return { name: 'Empty', kind: 'directory', async *entries() {}, async getDirectoryHandle() { throw new DOMException('Missing'); }, async getFileHandle() { throw new DOMException('Missing'); }, async removeEntry() {} }; } }); });
+  await page.goto('/');
+  expect(await page.evaluate(() => (window as unknown as { pickerCalls: number }).pickerCalls)).toBe(0);
+  await page.getByRole('button', { name: 'Choose a folder' }).click();
+  expect(await page.evaluate(() => (window as unknown as { pickerCalls: number }).pickerCalls)).toBe(1);
+});
+
 test('has no serious accessibility violations', async ({ page }, testInfo) => {
   await page.goto('/');
-  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Load an example survey' }).click();
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Try the five-file sample' }).click();
   await page.addScriptTag({ content: axe.source });
   const results = await page.evaluate(async () => await (window as unknown as { axe: { run(options: { runOnly: string[] }): Promise<{ violations: Array<{ impact: string | null }> }> } }).axe.run({ runOnly: ['wcag2a', 'wcag2aa'] }));
   expect(results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
@@ -141,13 +261,39 @@ test('keyboard reaches the demo, edits a route, and keeps a visible focus ring',
   expect(outline).not.toBe('0px');
 });
 
+test('demo metadata, route focus, legal metadata, and designed 404 use complete route shells', async ({ page }) => {
+  await page.goto('/?demo=1');
+  await expect(page).toHaveTitle('Demo — Triagebox');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://local-file-triage.sociobot.in/demo');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Demo — Triagebox');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goto('/privacy/');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Privacy — Triagebox');
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goto('/does-not-exist');
+  await expect(page.getByRole('banner')).toBeVisible();
+  await expect(page.getByRole('contentinfo')).toBeVisible();
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Page not found — Triagebox');
+});
+
+test('browser Back restores a route heading focus and announces its route title', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toContainText('Triagebox');
+});
+
 test('legal routes have one h1 and clear product terms', async ({ page }) => {
   await page.goto('/privacy/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  await expect(page.getByText(/does not upload, sell, or profile/)).toBeVisible();
+  await expect(page.getByText(/File details are not sent to another service/)).toBeVisible();
   await page.goto('/terms/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  await expect(page.getByText(/Triagebox Pro is a \$19 one-time purchase/)).toBeVisible();
+  await expect(page.getByText(/Triagebox Pro costs \$19 once/)).toBeVisible();
 });
 
 test('@claim:offline-reload app shell reloads offline after installation', async ({ page, context }) => {

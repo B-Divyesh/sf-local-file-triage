@@ -18,6 +18,8 @@ let isPro = cachedPro();
 let notice = '';
 let demoMode = false;
 let persistQueue: Promise<void> = Promise.resolve();
+const releaseVersion = '1.0.1';
+const buildId = import.meta.env.VITE_BUILD_ID || 'development';
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 
@@ -25,8 +27,34 @@ function shell(content: string): string {
   return `<header class="site-header">
     <a class="brand" href="/" aria-label="Triagebox home"><img src="/icons/triagebox-mark.svg" alt="" width="36" height="36"><span>Triagebox</span></a>
     <nav aria-label="Primary"><a href="/demo">Demo</a><a href="/#workbench">Workbench</a><a href="/#unlock">Upgrade</a></nav>
-  </header>${content}<footer><div><strong>Triagebox</strong><p>Private terrain stays on your device.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage">Source</a></nav><p class="provenance">Map artwork generated for Triagebox · 2026 · build 1.0.1</p></footer>
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`;
+  </header>${content}<footer><div><strong>Triagebox</strong><p>Review file moves before they happen.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage" aria-label="View source on GitHub (opens in a new site)">View source on GitHub <span class="sr-only">(opens in a new site)</span></a></nav><p class="provenance">Map artwork generated for Triagebox · 2026 · v${releaseVersion} · build ${escapeHtml(buildId)}</p></footer>
+  <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`;
+}
+
+function setRouteMetadata(title: string, description: string, canonicalPath: string): void {
+  document.title = title;
+  const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (canonical) canonical.href = `https://local-file-triage.sociobot.in${canonicalPath}`;
+  const values: Record<string, string> = {
+    'meta[name="description"]': description,
+    'meta[property="og:title"]': title,
+    'meta[property="og:description"]': description,
+    'meta[name="twitter:title"]': title,
+    'meta[name="twitter:description"]': description
+  };
+  for (const [selector, value] of Object.entries(values)) {
+    const element = document.querySelector<HTMLMetaElement>(selector);
+    if (element) element.content = value;
+  }
+}
+
+function announceRoute(title: string): void {
+  requestAnimationFrame(() => {
+    const heading = document.querySelector<HTMLElement>('main h1');
+    heading?.focus({ preventScroll: true });
+    const announcer = document.querySelector<HTMLElement>('#route-announcer');
+    if (announcer) announcer.textContent = title;
+  });
 }
 
 const storageNamespace = (): StorageNamespace => demoMode ? 'demo' : 'real';
@@ -41,19 +69,20 @@ async function persistSurvey(): Promise<void> {
 }
 
 function renderLegal(kind: 'privacy' | 'terms'): void {
-  const privacy = `<p class="eyebrow">Field note 01 · Effective 28 August 2026</p><h1>Your files do not leave the map.</h1>
-    <p class="lede">Triagebox processes file names, types, dates, and contents in your browser. It does not upload, sell, or profile them.</p>
-    <h2>What stays on your device</h2><p>Your latest real survey and audit receipt are stored in this browser’s IndexedDB. The sample demo uses a separate IndexedDB record and never reads or writes your real survey. A license token and its verification time are stored in localStorage. Folder access is controlled by your browser and operating system; Triagebox can only access a folder after you choose it.</p>
-    <h2>What crosses the network</h2><p>The app shell loads from this site. If you buy or restore Pro, your license token is sent to the Sociobot billing API to verify access. Sociobot/Dodo is the merchant of record and processes checkout details under its own terms. Your file data is never included.</p>
-    <h2>Your control</h2><p>Clear this site’s storage to remove local surveys and the license token. Exported manifests are ordinary files under your control. Revoking folder permission in browser settings ends access.</p>
+  const privacy = `<p class="eyebrow">Field note 01 · Effective 28 August 2026</p><h1 tabindex="-1">Keep your file details on this device.</h1>
+    <p class="lede">Triagebox handles selected file details in this browser. File details are not sent to another service.</p>
+    <h2>What stays on your device</h2><p>Your last survey and receipt use this browser’s IndexedDB. The sample uses its own demo record. A Pro license token and its check result use localStorage. Triagebox asks the browser for folder access only after you choose a folder.</p>
+    <h2>What crosses the network</h2><p>The app loads from this site. Pro license checks use the Sociobot billing API. Your selected file details are not part of that request.</p>
+    <h2>Your control</h2><p>Clear this site’s storage to remove saved surveys and the license token. Exported receipts are files you control. Remove folder permission in browser settings when you are finished.</p>
     <h2>Contact</h2><p>Privacy questions can be sent through the project’s public issue tracker. Do not include private filenames or license tokens.</p>`;
-  const terms = `<p class="eyebrow">Route terms · Effective 28 August 2026</p><h1>Review the route before you move.</h1>
+  const terms = `<p class="eyebrow">Route terms · Effective 28 August 2026</p><h1 tabindex="-1">Review each destination before moving a file.</h1>
     <p class="lede">Triagebox is a local utility that proposes and performs file moves only after your approval. You remain responsible for reviewing each route and keeping independent backups.</p>
-    <h2>Safe-use agreement</h2><p>The app copies each approved file, verifies its byte size, then removes the original. It avoids overwriting collisions and records an undo manifest. Browser APIs cannot preserve filesystem modified timestamps; the original timestamp is recorded in the manifest instead. No software can replace a backup.</p>
-    <h2>License</h2><p>The free tier supports complete surveys, plan export, manifest export, undo, and up to 100 moves per run. Triagebox Pro is a $19 one-time purchase that removes the per-run move limit on the licensed device. Accessibility and safety features are never gated.</p>
-    <h2>Purchases and refunds</h2><p>Sociobot/Dodo is the merchant of record. Checkout, receipts, taxes, and refunds are handled there. A refunded or revoked purchase disables Pro after verification; the free utility and your local data remain available.</p>
+    <h2>Safe-use agreement</h2><p>The app copies each approved file, checks its byte size, then removes the original. It avoids overwriting collisions and records an undo receipt. Browser APIs cannot restore a copied file’s modified date. The receipt records the original timestamp. Keep a backup for important work.</p>
+    <h2>License</h2><p>The free tier includes surveys, edits, exports, undo, and 100 moves per run. Triagebox Pro costs $19 once and removes that limit on the licensed device. Safety and accessibility controls stay free.</p>
+    <h2>Purchases</h2><p>The purchase link opens a checkout page hosted by Sociobot/Dodo. That page provides its own purchase terms. A revoked license returns the app to its free move limit. Your local data remains available.</p>
     <h2>Warranty</h2><p>The software is provided “as is”, without warranty, to the extent permitted by law. Test with a backed-up folder first and inspect the exported receipt.</p>`;
-  app.innerHTML = shell(`<main id="main" class="legal"><a class="back-link" href="/">← Back to the workbench</a>${kind === 'privacy' ? privacy : terms}</main>`);
+  app.innerHTML = shell(`<main id="main" class="legal"><a class="back-link" href="/">← Back to Triagebox</a>${kind === 'privacy' ? privacy : terms}</main>`);
+  announceRoute(kind === 'privacy' ? 'Privacy — Triagebox' : 'Terms — Triagebox');
 }
 
 function visibleItems(): PlanItem[] {
@@ -92,17 +121,17 @@ function workbench(): string {
   const summary = stats();
   const fileApi = Boolean(window.showDirectoryPicker);
   if (!items.length) return `<section id="workbench" class="workbench empty-workbench" aria-labelledby="workbench-title">
-    <div class="section-index">02 / Survey station</div><h2 id="workbench-title">Open one folder. Nothing moves yet.</h2>
-    <p>Triagebox reads the directory only after you choose it, then builds a deterministic plan from file type and modified year.</p>
-    <div class="primary-actions"><button class="primary" data-action="scan" ${busy || !fileApi ? 'disabled' : ''}>Choose a folder</button><button data-action="preview" ${busy ? 'disabled' : ''}>Preview a folder</button><button data-action="import-undo" ${busy || !fileApi ? 'disabled' : ''}>Undo from receipt</button><button class="text-button" data-action="example">Load an example survey</button></div>
+    <div class="section-index">02 / Choose and review a folder</div><h2 id="workbench-title">Open one folder. Nothing moves yet.</h2>
+    <p>After you choose a folder, Triagebox suggests a destination from each file’s type and year.</p>
+    <div class="primary-actions"><button class="primary" data-action="scan" ${busy || !fileApi ? 'disabled' : ''}>Choose a folder</button><button data-action="preview" ${busy ? 'disabled' : ''}>Preview a folder</button><button data-action="import-undo" ${busy || !fileApi ? 'disabled' : ''}>Undo from receipt</button><button class="text-button" data-action="example">Try the five-file sample</button></div>
     ${!fileApi ? '<p class="callout warning"><strong>Read-only browser:</strong> folder write access needs desktop Chrome or Edge. You can still preview and export a plan here.</p>' : ''}
     <input id="folder-input" type="file" webkitdirectory multiple hidden aria-label="Choose a folder for read-only preview">
     <input id="manifest-input" type="file" accept="application/json,.json" hidden aria-label="Choose a Triagebox JSON receipt to undo">
-    <section class="how-it-works" aria-labelledby="how-it-works-title"><h3 id="how-it-works-title">How a safe cleanup works</h3><ol class="trust-strip"><li><strong>1. Survey</strong>Choose one local folder.</li><li><strong>2. Review</strong>Check each route you want.</li><li><strong>3. Move</strong>Copy, verify, then keep a receipt.</li></ol></section>${manifest ? receipt() : ''}
+    <section class="how-it-works" aria-labelledby="how-it-works-title"><h3 id="how-it-works-title">How review-before-move works</h3><ol class="trust-strip"><li><strong>1. Survey</strong>Choose one local folder.</li><li><strong>2. Review</strong>Check each destination you want.</li><li><strong>3. Move</strong>Copy, verify, then keep a receipt.</li></ol></section>${manifest ? receipt() : ''}
   </section>`;
   const previewNote = writable ? 'Write access granted. Approved rows can move.' : 'Preview only. Export this plan or reopen in desktop Chrome/Edge to move files.';
   return `<section id="workbench" class="workbench" aria-labelledby="workbench-title">
-    <div class="workbench-head"><div><div class="section-index">02 / Survey station · ${escapeHtml(rootName)}</div><h2 id="workbench-title">Review every proposed route.</h2><p>${previewNote}</p></div><div class="head-actions"><button data-action="import-undo" ${busy || !window.showDirectoryPicker ? 'disabled' : ''}>Undo from receipt</button><button data-action="new-scan">Survey another folder</button></div></div>
+    <div class="workbench-head"><div><div class="section-index">02 / Review this folder · ${escapeHtml(rootName)}</div><h2 id="workbench-title">Review every proposed destination.</h2><p>${previewNote}</p></div><div class="head-actions"><button data-action="import-undo" ${busy || !window.showDirectoryPicker ? 'disabled' : ''}>Undo from receipt</button><button data-action="new-scan">Survey another folder</button></div></div>
     <div class="legend" aria-label="Survey summary"><div><strong>${items.length.toLocaleString()}</strong><span>files mapped</span></div><div><strong>${summary.approved.toLocaleString()}</strong><span>approved</span></div><div><strong>${formatBytes(summary.bytes)}</strong><span>surveyed</span></div><div><strong>${summary.moved.toLocaleString()}</strong><span>moved</span></div></div>
     <div class="queue-tools"><label class="search"><span>Filter routes</span><input type="search" id="filter" value="${escapeHtml(query)}" placeholder="Name, bucket, or year"></label><div class="bulk"><button data-action="approve-all">Approve displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="approve-none">Clear displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="export-plan">Export plan JSON</button></div></div>
     <div class="queue-labels" aria-hidden="true"><span>Approve / source</span><span>Reason</span><span>Destination</span><span>Name / status</span></div>
@@ -123,15 +152,15 @@ function receipt(): string {
 }
 
 function upgrade(): string {
-  return `<section id="unlock" class="upgrade" aria-labelledby="upgrade-title"><div class="contour-badge" aria-hidden="true"><i></i><i></i><i></i></div><div><p class="eyebrow">Optional expedition pass</p><h2 id="upgrade-title">One cleanup. One purchase.</h2><p>Free includes complete surveys, editing, exports, undo, and 100 moves per run. A <strong>$19 one-time Triagebox Pro license</strong> removes the per-run limit. Your safety controls stay free.</p><div class="upgrade-actions">${isPro ? '<span class="license-good">✓ Pro unlocked on this device</span>' : `<a class="button primary" href="${checkoutUrl}">Buy Pro once · $19</a>`}<details><summary>Have a license? Restore it</summary><form id="license-form"><label for="license-token">License token</label><div class="inline-field"><input id="license-token" autocomplete="off" value="${escapeHtml(storedToken())}"><button type="submit" aria-label="Verify license">Verify license</button></div></form></details></div><p class="fine-print">Secure checkout and refunds are handled by Sociobot/Dodo, the merchant of record. See <a href="/terms/">terms</a> and <a href="/privacy/">privacy</a>.</p></div></section>`;
+  return `<section id="unlock" class="upgrade" aria-labelledby="upgrade-title"><div class="contour-badge" aria-hidden="true"><i></i><i></i><i></i></div><div><p class="eyebrow">Optional Pro license</p><h2 id="upgrade-title">Remove the 100-file move limit</h2><p>Free includes surveys, editing, exports, undo, and 100 moves per run. A <strong>$19 one-time Triagebox Pro license</strong> removes the per-run limit. Your safety controls stay free.</p><div class="upgrade-actions">${isPro ? '<span class="license-good">✓ Pro unlocked on this device</span>' : `<a class="button primary" href="${checkoutUrl}" aria-label="Buy Pro on Sociobot/Dodo · $19">Buy Pro on Sociobot/Dodo · $19 <span class="sr-only">(opens in a new site)</span></a>`}<details><summary>Have a license? Restore it</summary><form id="license-form"><label for="license-token">License token</label><div class="inline-field"><input id="license-token" autocomplete="off" value="${escapeHtml(storedToken())}"><button type="submit" aria-label="Verify license">Verify license</button></div></form></details></div><p class="fine-print">Checkout opens on Sociobot/Dodo. See <a href="/terms/">terms</a> and <a href="/privacy/">privacy</a>.</p></div></section>`;
 }
 
 function render(): void {
   const online = navigator.onLine;
   const demoBanner = demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span>Sample routes stay separate from your local survey.</span><button data-action="reset-demo">Reset demo</button><a href="/">Start for real</a></aside>' : '';
   app.innerHTML = shell(`${!online ? '<div class="network-note" role="status">Offline map active — local scans and saved receipts still work.</div>' : ''}${demoBanner}<main id="main">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">Private file cartography · No uploads</p><h1>Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">For people cleaning a messy folder, Triagebox shows each local route before any checked file moves.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See five routes. Nothing is saved.</span></div><dl class="coordinates"><div><dt>Network</dt><dd>None for files</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs are connected by one deliberate survey route" fetchpriority="high" decoding="async"></picture><figcaption>Mess becomes terrain once every route is visible.</figcaption></figure></section>
-    <div class="status-line"><span class="status-dot ${busy ? 'busy' : ''}"></span><span id="activity" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(notice || (items.length ? `${items.length.toLocaleString()} files in the current survey` : 'Ready. No folder permission requested yet.'))}</span><span class="coord">51.000° LOCAL / 0 BYTES UPLOADED</span></div>
+    <section class="hero"><div class="hero-copy"><p class="eyebrow">Organize files locally · No uploads</p><h1 tabindex="-1">Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">For people cleaning a messy folder, Triagebox shows where each file will go before it moves.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See five routes. Nothing is saved.</span></div><dl class="coordinates"><div><dt>File details</dt><dd>Stay in this browser</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs are connected by one deliberate survey route" fetchpriority="high" decoding="async"></picture><figcaption>See every proposed destination before moving a file.</figcaption></figure></section>
+    <div class="status-line"><span class="status-dot ${busy ? 'busy' : ''}"></span><span id="activity" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(notice || (items.length ? `${items.length.toLocaleString()} files in the current survey` : 'Ready. No folder permission requested yet.'))}</span><span class="coord">51.000° LOCAL / FILE DETAILS STAY HERE</span></div>
     ${workbench()}${upgrade()}</main>`);
   bindEvents();
 }
@@ -192,6 +221,7 @@ function updateApprovalSummary(): void {
   const rail = document.querySelector('.action-rail');
   if (!rail) return;
   const count = rail.querySelector('strong'); if (count) count.textContent = `${summary.approved.toLocaleString()} route${summary.approved === 1 ? '' : 's'} approved`;
+  const detail = rail.querySelector('span'); if (detail) detail.textContent = !isPro && summary.approved > 100 ? 'Free runs move the first 100. The rest remain safely queued.' : 'Only checked rows will move.';
   const button = rail.querySelector('button'); if (button) { button.textContent = `Move ${!isPro && summary.approved > 100 ? 'first 100' : summary.approved} approved`; (button as HTMLButtonElement).disabled = !writable || summary.approved === 0; }
 }
 
@@ -305,28 +335,30 @@ async function onLicense(event: SubmitEvent): Promise<void> {
 async function boot(): Promise<void> {
   captureReturnedLicense();
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/privacy') { document.title = 'Privacy — Triagebox'; renderLegal('privacy'); registerPwa(); return; }
-  if (path === '/terms') { document.title = 'Terms — Triagebox'; renderLegal('terms'); registerPwa(); return; }
+  if (path === '/privacy') { setRouteMetadata('Privacy — Triagebox', 'Learn how Triagebox keeps selected file details in this browser.', '/privacy/'); renderLegal('privacy'); registerPwa(); return; }
+  if (path === '/terms') { setRouteMetadata('Terms — Triagebox', 'Read the terms for reviewing and moving files with Triagebox.', '/terms/'); renderLegal('terms'); registerPwa(); return; }
   demoMode = path === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
-  if (path !== '/' && path !== '/demo') { document.title = 'Page not found — Triagebox'; renderNotFound(); registerPwa(); return; }
-  document.title = demoMode ? 'Demo — Triagebox' : 'Triagebox — local, reversible file triage';
+  if (path !== '/' && path !== '/demo') { setRouteMetadata('Page not found — Triagebox', 'This Triagebox route does not exist. Return home or try the five-file sample.', '/404'); renderNotFound(); registerPwa(); return; }
+  setRouteMetadata(demoMode ? 'Demo — Triagebox' : 'Triagebox — organize files locally', demoMode ? 'Try five sample file destinations in an isolated Triagebox demo.' : 'Review proposed file destinations before moving local files.', demoMode ? '/demo' : '/');
   try {
     const saved = await loadSurvey(storageNamespace());
     if (saved && (saved.items.length || saved.manifest)) { items = saved.items; rootName = saved.rootName; manifest = saved.manifest; writable = false; notice = demoMode ? 'Demo restored. Sample data remains separate from your local survey.' : `Restored the last local survey from ${new Date(saved.savedAt).toLocaleDateString()}. Re-select the folder to perform moves.`; }
     else if (demoMode) await loadExample();
   } catch { notice = 'Local history is unavailable, but a new survey still works.'; }
   render();
+  announceRoute(demoMode ? 'Demo — Triagebox' : 'Triagebox — organize files locally');
   if (storedToken()) { const valid = await verifyLicense(); if (valid !== isPro) { isPro = valid; render(); } }
   registerPwa();
 }
 
 function renderNotFound(): void {
-  app.innerHTML = shell(`<main id="main" class="legal"><p class="eyebrow">Map edge</p><h1>This route is not on the map.</h1><p class="lede">Return to Triagebox to survey a folder or use the sample data.</p><p><a class="button primary" href="/">Open Triagebox</a></p></main>`);
+  app.innerHTML = shell(`<main id="main" class="legal"><p class="eyebrow">Map edge</p><h1 tabindex="-1">This route is not on the map.</h1><p class="lede">Return to Triagebox to survey a folder or use the sample data.</p><p><a class="button primary" href="/">Open Triagebox</a></p></main>`);
+  announceRoute('Page not found — Triagebox');
 }
 
 function registerPwa(): void {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'UPDATE_READY') showToast('Triagebox is ready offline. Refresh anytime for the newest map.'); });
+  navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'UPDATE_READY') showToast('Triagebox is ready offline. Refresh to update the app.'); });
   navigator.serviceWorker.register('/sw.js').catch(() => undefined);
 }
 

@@ -1,11 +1,11 @@
 {
   "name": "triagebox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "VITE_BUILD_ID=$(git rev-parse --short HEAD) tsc --noEmit && VITE_BUILD_ID=$(git rev-parse --short HEAD) vite build",
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0",
     "test:unit": "vitest run tests/*.test.ts",

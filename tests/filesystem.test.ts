@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildManifest, movePlanItem, undoManifest, type DirectoryHandleLike, type FileHandleLike } from '../src/filesystem';
+import { buildManifest, movePlanItem, scanDirectory, undoManifest, type DirectoryHandleLike, type FileHandleLike } from '../src/filesystem';
 import { createProposal } from '../src/triage';
 
 class MemoryFile implements FileHandleLike {
@@ -30,6 +30,18 @@ class MemoryDirectory implements DirectoryHandleLike {
 }
 
 describe('reversible filesystem handoff', () => {
+  it('@claim:recursive-inventory lists each nested file once with its relative path', async () => {
+    const root = new MemoryDirectory('Root');
+    const camera = await root.getDirectoryHandle('Camera uploads', { create: true });
+    const old = await camera.getDirectoryHandle('2024', { create: true });
+    old.entriesMap.set('lake.jpg', new MemoryFile('lake.jpg', new Uint8Array([1])));
+    root.entriesMap.set('notes.txt', new MemoryFile('notes.txt', new Uint8Array([2])));
+    const progress: string[] = [];
+    const scanned = await scanDirectory(root, (_, path) => progress.push(path));
+    expect(scanned.items.map(item => item.relativePath).sort()).toEqual(['Camera uploads/2024/lake.jpg', 'notes.txt']);
+    expect(progress.sort()).toEqual(['Camera uploads/2024/lake.jpg', 'notes.txt']);
+  });
+
   it('@claim:reversible-move copies, verifies, avoids collisions, removes source, then restores it', async () => {
     const root = new MemoryDirectory('Test folder');
     const incoming = await root.getDirectoryHandle('Incoming', { create: true });

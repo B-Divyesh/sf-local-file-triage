@@ -75,5 +75,68 @@
     "where": "receipt controls, landing, README",
     "test": "npm run test:unit -- -t @claim:receipt-csv",
     "sandbox": "manifest with quoted path and error; assert CSV header and escaped row"
+  },
+  {
+    "id": "real-file-locality",
+    "claim": "Selected file details stay in this browser during preview, move, receipt export, and undo",
+    "where": "landing, privacy, README",
+    "test": "npm run test:e2e -- --grep @claim:real-file-locality",
+    "sandbox": "mock local directory; request log across choose, move, exports, and undo contains only same-origin requests"
+  },
+  {
+    "id": "browser-capabilities",
+    "claim": "Desktop folder choice is available when supported; other browsers can preview and export a plan",
+    "where": "workbench, README",
+    "test": "npm run test:e2e -- --grep @claim:browser-capabilities",
+    "sandbox": "feature-present and feature-absent browser contexts; assert chooser state, preview, and JSON download"
+  },
+  {
+    "id": "storage-boundary",
+    "claim": "Demo, real survey, and Pro license storage use separate documented keys",
+    "where": "privacy, README, demo documentation",
+    "test": "npm run test:e2e -- --grep @claim:storage-boundary",
+    "sandbox": "demo plus real sample and fixture license; enumerate IndexedDB and namespaced localStorage keys"
+  },
+  {
+    "id": "no-tracking-runtime",
+    "claim": "The product loads no analytics, third-party scripts, or CDN fonts",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:no-tracking-runtime",
+    "sandbox": "request log across home, demo, privacy, and terms; assert every runtime request is same-origin"
+  },
+  {
+    "id": "free-limit",
+    "claim": "Free runs show a 100-file move limit; a verified $19 Pro license removes it",
+    "where": "upgrade, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:free-limit",
+    "sandbox": "101-file preview plus recorded valid license response; assert free cap message and unlocked Pro state"
+  },
+  {
+    "id": "checkout-origin",
+    "claim": "Checkout and license verification use Sociobot",
+    "where": "upgrade, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:checkout-origin",
+    "sandbox": "assert checkout href and record fixture license verification request origin"
+  },
+  {
+    "id": "permission-on-action",
+    "claim": "Triagebox asks for a folder only after you choose a folder",
+    "where": "workbench, privacy, README",
+    "test": "npm run test:e2e -- --grep @claim:permission-on-action",
+    "sandbox": "picker spy; assert zero calls on load and one after Choose a folder"
+  },
+  {
+    "id": "receipt-original-timestamp",
+    "claim": "Receipts record each file’s original timestamp",
+    "where": "receipt, terms, README",
+    "test": "npm run test:unit -- -t @claim:receipt-original-timestamp",
+    "sandbox": "fixture receipt; assert exact source timestamp in JSON data and CSV"
+  },
+  {
+    "id": "recursive-inventory",
+    "claim": "Triagebox lists files in nested folders with their relative paths",
+    "where": "README",
+    "test": "npm run test:unit -- -t @claim:recursive-inventory",
+    "sandbox": "nested in-memory directory; assert each file appears once with its full relative path"
   }
 ]

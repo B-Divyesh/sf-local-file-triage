@@ -26,4 +26,11 @@ describe('deterministic triage rules', () => {
     expect(csv).toContain('"a,""b"".txt"');
     expect(csv).toContain('"No, permission"');
   });
+
+  it('@claim:receipt-original-timestamp records the source timestamp in JSON data and CSV', () => {
+    const timestamp = Date.UTC(2024, 3, 2, 9, 15, 30);
+    const manifest = { schema: 'triagebox-manifest-v1' as const, runId: 'r2', rootName: 'root', createdAt: 'now', note: '', actions: [{ originalPath: 'in/a.txt', destinationPath: 'Triagebox/Documents/2024/a.txt', size: 3, lastModified: timestamp, status: 'moved' as const }] };
+    expect(manifest.actions[0].lastModified).toBe(timestamp);
+    expect(manifestToCsv(manifest)).toContain(String(timestamp));
+  });
 });

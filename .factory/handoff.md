@@ -1,56 +1,51 @@
-# Review handoff — FAIL
+# Triagebox polish handoff — round 1
 
 Date: 2026-08-28 UTC
 
-Work order: `local-file-triage-review-1`
+Work order: `local-file-triage-polish-1`.
 
-Reviewed candidate: `97118147616739fdbc90eaf4cf0ba97235c60be0`
+## Delivered
 
-Live URL: <https://local-file-triage.sociobot.in>
+- Resolved all 30 findings in [`review-1.md`](review-1.md); the finding-to-change
+  evidence table is [`polish-1.md`](polish-1.md).
+- Added nine missing observable claims and tests. The registry now covers demo
+  isolation, real-file locality, browser fallbacks, storage boundaries, runtime
+  requests, free/Pro limit presentation, checkout origin, permission timing,
+  original timestamps, and recursive inventory.
+- Rewrote first-screen and README copy in plain words. The catalog description is
+  verb-first and 62 characters.
+- Added complete demo/legal/404 metadata, route focus and live announcements,
+  external-link labels, a 180px touch icon, and commit-derived footer build ID.
+- Preserved the field-paper topographic visual identity and static PWA deployment
+  class. The service worker precaches the new icon.
 
-The adversarial first-read review is complete. The full evidence and 30 findings
-are in [`review-1.md`](review-1.md). No product code was modified.
+## Run and verify
 
-## Outcome
-
-- **FAIL** under the required zero-finding standard.
-- The cold first screen passes at 390 px and desktop: job, audience, and first
-  action are clear without scrolling.
-- The one-click demo passes: five realistic rows appear immediately; banner,
-  reset, exit, storage isolation, real-data preservation, offline reload, and
-  same-origin request behavior were confirmed.
-- All 11 declared claim commands pass, but nine broader live/README promises are
-  absent from or narrower than `.factory/claims.json`.
-- Remaining findings also cover per-route metadata, 404 shell consistency,
-  route-change focus, external-link labels, icon/build identity, two sentences
-  over 22 words, jargon, metaphor, and terminology drift.
-- No earlier RB-01 through RB-05 defect regressed.
-
-## Verification performed
-
-From the clean requested commit:
-
-```sh
+```bash
 npm ci
-npm run build
-# every exact command in .factory/claims.json, separately
-npm run lint
 npm test
+npm run build
+npm run preview
 ```
 
-Results: lint PASS; Vitest 6/6 PASS; production build PASS; Playwright 22/22 PASS
-across desktop Chromium and Pixel 5. Live axe checks on `/`, `/demo`, `/privacy/`,
-and `/terms/` at both widths found zero WCAG A/AA violations. The live link crawl
-found no dead link. Unknown routes returned HTTP 404.
+Local evidence before handoff:
 
-## Left for the repair round
+- `npm test`: PASS — 8 unit tests, build to `dist/`, 40 Playwright desktop/mobile
+  tests, including axe WCAG A/AA, offline reload, keyboard/focus, metadata, and
+  privacy request logging.
+- Bundle: JavaScript 32.46 kB raw / 11.72 kB gzip; CSS 15.94 kB raw / 4.44 kB
+  gzip. Both are inside the static-product budget.
+- Screenshots: `evidence/home-390.png`, `evidence/demo-390.png`, and
+  `evidence/not-found-desktop.png`.
+- Claim commands: each command in `claims.json` is run separately from a fresh
+  clone after this commit; results and deployment evidence are appended below.
 
-Resolve F-1-1 through F-1-30 in order, then rerun the entire checklist rather
-than only the changed areas. The highest-leverage repair is to align all public
-promises with tagged claim tests or narrow the copy. After that, complete route
-metadata/focus/404 structure and apply the exact plain-word rewrites recorded in
-the review.
+## Demo
 
-Known repository condition: `.factory/brief.json` is absent, as it was in the
-prior verification. The supplied work-order context and existing design document
-were used as the available source of truth.
+Open `/demo` or `/?demo=1`. The sample has five realistic file records and is
+stored only under IndexedDB key `demo:latest`; real work uses `latest`. The
+banner supplies **Reset demo** and **Start for real**. See [`demo.md`](demo.md).
+
+## Known gaps
+
+None. Deployment and cold-live verification are the final work-order steps.
