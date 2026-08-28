@@ -10,14 +10,14 @@ Live product: <https://local-file-triage.sociobot.in>
 
 ## Try the sample
 
-Open <https://local-file-triage.sociobot.in/demo> or choose **Try it with sample data**.
-The five-file sample is isolated from your saved local survey.
-Reset demo restores the sample. Start for real returns to your separate survey.
+Open <https://local-file-triage.sociobot.in/?demo=1> or choose **Try it with sample data**.
+The five-file sample is isolated from your saved folder review.
+Reset demo restores the sample. Start for real returns to your separate folder review.
 Details are in [`.factory/demo.md`](.factory/demo.md).
 
 ## Who it is for
 
-For people cleaning or migrating folders with 1,000–10,000 files.
+For people cleaning or migrating folders.
 File details stay in your browser, and nothing moves without review.
 
 ## Safety model
@@ -29,14 +29,19 @@ For each move, Triagebox copies bytes, checks the destination size, then removes
 Name collisions receive `(2)`, `(3)`, and so on. Nothing is overwritten.
 The receipt records original and destination paths, byte size, original timestamp, outcome, and errors.
 Undo uses the same copy, check, and remove sequence in reverse.
-Browser file APIs cannot restore a copied file’s modified date.
+Triagebox records the original date in the receipt.
+It does not promise to preserve the copied file’s modified date.
 Keep a separate backup during important migrations.
+
+Exported plan JSON can be imported after choosing the matching folder.
+Exact path, size, and date matches regain their edits and approvals.
+Changed or missing files stay unapproved and are reported.
 
 ## Browser support and privacy
 
-Desktop folder choice is available in current Chrome or Edge.
+Writable folder choice appears when your browser supports it.
 Other browsers and mobile devices can preview a folder and export a plan.
-Your last survey and receipt use IndexedDB. The demo uses `demo:latest`; real work uses `latest`.
+Your last folder review and receipt use IndexedDB. The demo uses `demo:latest`; real work uses `latest`.
 The optional Pro token and its check result use namespaced localStorage keys.
 There are no analytics, third-party scripts, or CDN fonts.
 Supporting browsers receive the manifest and service worker needed to install Triagebox.
@@ -45,13 +50,13 @@ Read the full [privacy policy](https://local-file-triage.sociobot.in/privacy/) a
 
 ## Free and Pro
 
-The free tier includes surveys, per-file review and edits, exports, undo, and 100 file moves per run.
+The free tier includes folder scans, per-file review and edits, exports, undo, and 100 file moves per run.
 Triagebox Pro is a $19 one-time license that removes the per-run limit.
 Checkout opens a page hosted by Sociobot/Dodo. License checks use the Sociobot billing API.
 
 ## Develop and verify
 
-Requires Node.js 22+.
+Development is verified with Node.js 22.
 
 ```bash
 npm ci
@@ -60,11 +65,11 @@ npm run build
 npm run preview
 ```
 
-`npm test` runs unit tests, builds production output, then runs Chromium desktop and mobile checks.
+`npm test` runs unit, copy, build, and Chromium desktop and mobile checks.
 Playwright 1.58.2 is pinned for the factory image.
 The static deployment root is `dist/`, with `dist/index.html` at its root.
 
-## Project notes
+## Product documentation
 
 Product and visual decisions: [`.factory/design.md`](.factory/design.md).
 Observable product claims and regression commands: [`.factory/claims.json`](.factory/claims.json).

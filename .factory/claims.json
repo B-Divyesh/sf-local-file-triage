@@ -1,14 +1,14 @@
 [
   {
     "id": "demo-sandbox",
-    "claim": "Try the five-file sample without saving it with your local survey",
+    "claim": "Try the five-file sample without saving it with your local folder review",
     "where": "landing action, /demo banner, README",
     "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context; seed a private real IndexedDB survey; enter /demo in one click; assert five sample destinations, reset, exit, and demo-record deletion"
+    "sandbox": "fresh 390×844 browser context; seed a private real IndexedDB review; enter ?demo=1 in one click; assert a sample row is in the first viewport, then reset, exit, and verify demo-record deletion"
   },
   {
     "id": "approval-required",
-    "claim": "A proposed route moves only after you check it",
+    "claim": "A file moves only after you check its proposed destination",
     "where": "landing, workbench, terms, README",
     "test": "npm run test:e2e -- --grep @claim:approval-required",
     "sandbox": "fresh /demo; assert all sample approvals are unchecked; check one and assert the count"
@@ -22,7 +22,7 @@
   },
   {
     "id": "review-persistence",
-    "claim": "Your approval and destination edits survive a reload on this device",
+    "claim": "Your approval and destination edits in a saved folder review survive a reload on this device",
     "where": "workbench, privacy, README",
     "test": "npm run test:e2e -- --grep @claim:review-persistence",
     "sandbox": "fresh real sample; edit approval, bucket, and name; reload; assert all three values"
@@ -92,14 +92,14 @@
   },
   {
     "id": "browser-capabilities",
-    "claim": "Desktop folder choice is available when supported; other browsers can preview and export a plan",
+    "claim": "Writable folder choice appears when supported; other browsers can preview and export a plan",
     "where": "workbench, README",
     "test": "npm run test:e2e -- --grep @claim:browser-capabilities",
     "sandbox": "feature-present and feature-absent browser contexts; assert chooser state, preview, and JSON download"
   },
   {
     "id": "storage-boundary",
-    "claim": "Demo, real survey, and Pro license storage use separate documented keys",
+    "claim": "Demo, real folder review, and Pro license storage use separate documented keys",
     "where": "privacy, README, demo documentation",
     "test": "npm run test:e2e -- --grep @claim:storage-boundary",
     "sandbox": "demo plus real sample and fixture license; enumerate IndexedDB and namespaced localStorage keys"
@@ -152,5 +152,12 @@
     "where": "README",
     "test": "npm run test:unit -- -t @claim:recursive-inventory",
     "sandbox": "nested in-memory directory; assert each file appears once with its full relative path"
+  },
+  {
+    "id": "plan-import",
+    "claim": "An exported review plan restores destination edits and approves only files whose path, size, and date still match",
+    "where": "folder controls, README",
+    "test": "npm run test:e2e -- --grep @claim:plan-import",
+    "sandbox": "fresh browser context; import the recorded three-file plan into a two-file writable fixture; assert the exact file is approved, the changed file is unapproved, the missing file is reported, and destination edits return"
   }
 ]

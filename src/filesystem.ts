@@ -171,7 +171,7 @@ export function buildManifest(rootName: string): TriageManifest {
     runId: crypto.randomUUID(),
     rootName,
     createdAt: new Date().toISOString(),
-    note: 'Timestamps are recorded for audit. Browser file APIs cannot restore filesystem modified dates after a move.',
+    note: 'Original dates are recorded in this receipt. Triagebox does not promise to preserve copied-file modified dates.',
     actions: []
   };
 }

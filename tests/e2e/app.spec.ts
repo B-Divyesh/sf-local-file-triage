@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import axe from 'axe-core';
+import { resolve } from 'node:path';
 
 async function installWritableFixture(page: Page, filename = 'private-notes.txt'): Promise<void> {
   await page.addInitScript(name => {
@@ -29,11 +30,11 @@ test('home explains safety and offers a useful preview workflow', async ({ page 
   const errors: string[] = [];
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Organize a folder/);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.getByRole('img')).toHaveAttribute('alt', /topographic map/);
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
-  await expect(page.locator('.legend > div').first()).toContainText('5files mapped');
+  await expect(page.locator('.demo-workbench-head')).toContainText('5 files');
   await expect(page.locator('.file-row')).toHaveCount(5);
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Documents');
   await expect(page.getByLabel('Destination bucket for IMG_4821.jpg')).toHaveValue('Documents');
@@ -41,6 +42,7 @@ test('home explains safety and offers a useful preview workflow', async ({ page 
 });
 
 test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and isolated', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   // Seed an intentionally private real record. The demo must never read it.
   await page.evaluate(async () => {
@@ -57,10 +59,15 @@ test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and 
     db.close();
   });
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page).toHaveTitle('Demo — Triagebox');
   await expect(page.getByLabel('Demo mode')).toContainText('Demo — sample data, nothing is saved');
   await expect(page.locator('.file-row')).toHaveCount(5);
+  const firstRow = await page.locator('.file-row').first().boundingBox();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  expect(firstRow).not.toBeNull();
+  expect(firstRow!.y).toBeLessThan(844);
+  expect(Math.min(firstRow!.y + firstRow!.height, 844) - Math.max(firstRow!.y, 0)).toBeGreaterThanOrEqual(100);
   await expect(page.getByText('PRIVATE-tax-record.pdf')).toHaveCount(0);
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Archives');
@@ -243,7 +250,7 @@ test('@claim:storage-boundary demo, real survey, and license storage use the doc
   await page.getByText('Have a license?').click();
   await page.getByLabel('License token').fill('fixture-license');
   await page.getByRole('button', { name: 'Verify license' }).click();
-  await expect(page.getByText('Pro unlocked on this device')).toBeVisible();
+  await expect(page.getByText('Pro active on this device')).toBeVisible();
   const storage = await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open('triagebox-local', 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const keys = await new Promise<IDBValidKey[]>((resolve, reject) => { const request = db.transaction('surveys').objectStore('surveys').getAllKeys(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); db.close();
@@ -267,7 +274,7 @@ test('@claim:installable supporting Chromium receives a valid app manifest and c
   expect(response.ok()).toBe(true);
   expect(response.headers()['content-type']).toContain('application/manifest+json');
   const manifest = await response.json() as { name: string; short_name: string; start_url: string; scope: string; display: string; icons: Array<{ sizes: string; purpose?: string }> };
-  expect(manifest).toEqual(expect.objectContaining({ name: expect.stringContaining('Triagebox'), short_name: 'Triagebox', start_url: '/?v=2', scope: '/', display: 'standalone' }));
+  expect(manifest).toEqual(expect.objectContaining({ name: expect.stringContaining('Triagebox'), short_name: 'Triagebox', start_url: '/?v=3', scope: '/', display: 'standalone' }));
   expect(manifest.icons).toEqual(expect.arrayContaining([expect.objectContaining({ sizes: '192x192' }), expect.objectContaining({ sizes: '512x512', purpose: expect.stringContaining('maskable') })]));
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
@@ -311,10 +318,10 @@ test('@claim:free-limit free runs show a 100-file limit and a fixture license re
   await expect(page.getByRole('heading', { name: /100 moved · 0 undone/ })).toBeVisible();
   await expect(page.locator('.row-status.proposed')).toHaveCount(1);
   await page.getByText('Have a license?').click(); await page.getByLabel('License token').fill('fixture-pro'); await page.getByRole('button', { name: 'Verify license' }).click();
-  await expect(page.getByText('Pro unlocked on this device')).toBeVisible();
+  await expect(page.getByText('Pro active on this device')).toBeVisible();
   await expect(page.getByText('$19 one-time Triagebox Pro license')).toBeVisible();
   await page.goto('/');
-  await page.getByRole('button', { name: 'Survey another folder' }).click();
+  await page.getByRole('button', { name: 'Choose another folder' }).click();
   await page.getByRole('button', { name: 'Choose a folder' }).click();
   await page.getByRole('button', { name: 'Approve displayed (100)' }).click();
   await page.getByRole('button', { name: /Show 100 more/ }).click();
@@ -342,19 +349,54 @@ test('@claim:permission-on-action folder permission is requested only when Choos
   expect(await page.evaluate(() => (window as unknown as { pickerCalls: number }).pickerCalls)).toBe(1);
 });
 
-test('has no serious accessibility violations', async ({ page }, testInfo) => {
+test('@claim:plan-import an exported review plan restores exact approvals and leaves changed files unchecked', async ({ page }) => {
+  await page.addInitScript(() => {
+    const makeFile = (name: string, bytes: number[]) => ({
+      kind: 'file', name,
+      async getFile() { return new File([new Uint8Array(bytes)], name, { type: 'text/plain', lastModified: 1_700_000_000_000 }); },
+      async createWritable() { return { async write() {}, async close() {} }; }
+    });
+    const entries = new Map<string, unknown>([['exact.txt', makeFile('exact.txt', [1, 2, 3])], ['changed.txt', makeFile('changed.txt', [1, 2, 3, 4])]]);
+    const root = {
+      kind: 'directory', name: 'Plan folder', entriesMap: entries,
+      async *entries() { yield* entries.entries(); },
+      async getDirectoryHandle() { throw new DOMException('Missing', 'NotFoundError'); },
+      async getFileHandle(name: string) { const found = entries.get(name); if (!found) throw new DOMException('Missing', 'NotFoundError'); return found; },
+      async removeEntry(name: string) { entries.delete(name); }
+    };
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => root });
+  });
   await page.goto('/');
-  if (testInfo.project.name === 'mobile') await page.goto('/demo');
-  await page.addScriptTag({ content: axe.source });
-  const results = await page.evaluate(async () => await (window as unknown as { axe: { run(options: { runOnly: string[] }): Promise<{ violations: Array<{ impact: string | null }> }> } }).axe.run({ runOnly: ['wcag2a', 'wcag2aa'] }));
-  expect(results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
-  await expect(page.locator('#activity')).toHaveAttribute('aria-live', 'polite');
-  if (testInfo.project.name === 'mobile') {
-    const box = await page.locator('.approve').first().boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
+  await page.getByRole('button', { name: 'Import plan JSON' }).click();
+  await page.locator('#plan-input').setInputFiles(resolve('tests/fixtures/import-plan.json'));
+  await expect(page.locator('#activity')).toContainText('1 exact match restored; 1 changed, 1 missing left unapproved');
+  await expect(page.getByLabel('Approve exact.txt')).toBeChecked();
+  await expect(page.getByLabel('Destination bucket for exact.txt')).toHaveValue('Archives');
+  await expect(page.getByLabel('Destination name for exact.txt')).toHaveValue('keep-exact.txt');
+  await expect(page.getByLabel('Approve changed.txt')).not.toBeChecked();
+  await expect(page.getByLabel('Destination name for changed.txt')).toHaveValue('review-changed.txt');
+  await expect(page.getByRole('button', { name: 'Choose another folder' })).toBeFocused();
+});
+
+test('has no serious accessibility violations', async ({ page }, testInfo) => {
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/does-not-exist']) {
+    await page.goto(path);
+    await page.addScriptTag({ content: axe.source });
+    const results = await page.evaluate(async () => await (window as unknown as { axe: { run(options: { runOnly: string[] }): Promise<{ violations: Array<{ impact: string | null }> }> } }).axe.run({ runOnly: ['wcag2a', 'wcag2aa'] }));
+    expect(results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact ?? '')), path).toEqual([]);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, path).toBeLessThanOrEqual(1);
+    if (path === '/' || path === '/demo') await expect(page.locator('#activity')).toHaveAttribute('aria-live', 'polite');
+    if (testInfo.project.name === 'mobile') {
+      const undersized = await page.locator('a, button, input, select, summary').evaluateAll(elements => elements.flatMap(element => {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        if (style.visibility === 'hidden' || style.display === 'none' || box.width === 0 || box.height === 0) return [];
+        const target = element instanceof HTMLInputElement && element.type === 'checkbox' && element.closest('label') ? element.closest('label')!.getBoundingClientRect() : box;
+        return target.width + .5 < 44 || target.height + .5 < 44 ? [`${element.tagName.toLowerCase()}:${(element.textContent || element.getAttribute('aria-label') || '').trim()}:${Math.round(target.width)}x${Math.round(target.height)}`] : [];
+      }));
+      expect(undersized, path).toEqual([]);
+    }
   }
 });
 
@@ -364,13 +406,42 @@ test('keyboard reaches the demo, edits a proposed destination, and keeps a visib
   await demo.focus();
   await expect(demo).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(/\?demo=1$/);
   const approval = page.getByLabel('Approve IMG_4821.jpg');
   await approval.focus();
   await page.keyboard.press('Space');
   await expect(approval).toBeChecked();
   const outline = await approval.evaluate(element => getComputedStyle(element).outlineWidth || getComputedStyle(element.parentElement!).outlineWidth);
   expect(outline).not.toBe('0px');
+});
+
+test('keyboard focus survives demo reset, bulk changes, and a new folder action', async ({ page }) => {
+  await page.goto('/demo');
+  const reset = page.getByRole('button', { name: 'Reset demo' });
+  await reset.focus();
+  await page.keyboard.press('Enter');
+  await expect(reset).toBeFocused();
+  const approve = page.getByRole('button', { name: 'Approve displayed (5)' });
+  await approve.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Approve displayed (5)' })).toBeFocused();
+  const clear = page.getByRole('button', { name: 'Clear displayed (5)' });
+  await clear.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Clear displayed (5)' })).toBeFocused();
+
+  await page.goto('/');
+  await page.evaluate(() => {
+    const transfer = new DataTransfer(); transfer.items.add(new File(['one'], 'one.txt', { type: 'text/plain' }));
+    const input = document.querySelector<HTMLInputElement>('#folder-input')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: transfer.files }); input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.getByText('one.txt', { exact: true }).waitFor();
+  const newFolder = page.getByRole('button', { name: 'Choose another folder' });
+  await newFolder.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Choose a folder' })).toBeFocused();
+  expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
 });
 
 test('cold 390px load keeps all first-screen facts visible and shows no initial update notice', async ({ page }) => {
@@ -403,13 +474,21 @@ test('demo metadata, route focus, legal metadata, and designed 404 use complete 
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Privacy — Triagebox');
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  const expectedHeader = ['Demo', 'Review files', 'Upgrade', 'Privacy'];
+  const expectedFooter = ['Privacy', 'Terms', 'View source on GitHub (opens in a new site)'];
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/does-not-exist']) {
+    await page.goto(path);
+    expect(await page.getByRole('navigation', { name: 'Primary' }).getByRole('link').allTextContents()).toEqual(expectedHeader);
+    expect((await page.getByRole('navigation', { name: 'Legal' }).getByRole('link').allTextContents()).map(text => text.replace(/\s+/g, ' ').trim())).toEqual(expectedFooter);
+  }
   await page.goto('/does-not-exist');
   await expect(page.getByRole('banner')).toBeVisible();
   await expect(page.getByRole('contentinfo')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found.');
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Page not found — Triagebox');
 });
 
-test('browser Back restores a route heading focus and announces its route title', async ({ page }) => {
+test('browser Back and Forward restore route heading focus and announce the route title', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
@@ -417,6 +496,10 @@ test('browser Back restores a route heading focus and announces its route title'
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
   await expect(page.locator('#route-announcer')).toContainText('Triagebox');
+  await page.goForward();
+  await expect(page).toHaveURL(/\?demo=1$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toContainText('Demo — Triagebox');
 });
 
 test('legal routes have one h1 and clear product terms', async ({ page }) => {
@@ -435,5 +518,5 @@ test('@claim:offline-reload app shell reloads offline after installation', async
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder|Offline, with your files still local/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Organize a folder|Triagebox has not finished loading/);
 });

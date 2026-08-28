@@ -1,4 +1,4 @@
-const CACHE = 'triagebox-shell-v4';
+const CACHE = 'triagebox-shell-v5';
 const SHELL = ['/', '/index.html', '/boot-fallback.js', '/privacy/', '/terms/', '/offline.html', '/404.html', '/manifest.webmanifest', '/assets/triage-map-480.webp', '/assets/triage-map.webp', '/assets/triage-map-800.jpg', '/assets/triage-social.jpg', '/icons/triagebox-mark.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

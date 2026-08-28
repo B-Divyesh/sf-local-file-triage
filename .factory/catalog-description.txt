@@ -1,1 +1,1 @@
-Review proposed file destinations before organizing a local folder.
+Organize a local folder after reviewing every proposed move.

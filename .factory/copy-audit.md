@@ -1,150 +1,170 @@
 # Copy audit
 
-Reviewed 2026-08-28 after polish round 2. Counts treat hyphenated compounds,
-URLs, paths, and product names as one word. The automated Playwright copy test
-also rejects user-facing `route` or `routes` outside the designed 404.
-
-No copy unit exceeds 22 words. No banned marketing word is present.
+Generated from the rendered 390×844 cold pages and README by `npm run audit:copy`.
+The check fails when any exact string or word count changes. No unit exceeds 22 words or uses a banned marketing word.
 
 ## Cold landing page
 
-| Copy unit | Words | Evidence |
+| Exact copy unit | Words | Result |
 | --- | ---: | --- |
-| Skip to main content | 5 | Clear accessibility link |
-| Triagebox | 1 | Brand |
-| Demo | 1 | Clear navigation label |
-| Workbench | 1 | Product section label |
-| Upgrade | 1 | Clear navigation label |
-| Organize files locally | 3 | Plain job |
-| No uploads | 2 | `real-file-locality` |
-| Survey the folder. | 3 | Job-first headline |
-| Approve every move. | 3 | `approval-required` |
-| For people cleaning a messy folder, Triagebox shows where each file will go before it moves. | 16 | Audience and result |
-| Try it with sample data | 5 | Primary action |
-| See five proposed destinations. | 4 | Concrete action result |
-| Nothing is saved. | 3 | `demo-sandbox` |
-| File details | 2 | Fact label |
-| Stay in this browser | 4 | `real-file-locality` |
-| Method | 1 | Fact label |
-| Copy · verify · remove | 3 | `reversible-move` |
-| Receipt | 1 | Fact label |
-| JSON + CSV | 2 | `receipt-json`; `receipt-csv` |
-| See every proposed destination before moving a file. | 8 | Concrete caption |
-| Ready. | 1 | Status |
-| No folder permission requested yet. | 5 | `permission-on-action` |
-| Local / file details stay here | 5 | `real-file-locality` |
-| Choose and review a folder | 5 | Section label |
-| Open one folder. | 3 | Empty state |
-| Nothing moves yet. | 3 | `approval-required` |
-| After you choose a folder, Triagebox suggests a destination from each file’s type and year. | 15 | `permission-on-action`; `deterministic-routes` |
-| Choose a folder | 3 | Action |
-| Preview a folder | 3 | Action |
-| Undo from receipt | 3 | Action |
-| Try the five-file sample | 4 | Isolated demo link |
-| How review-before-move works | 4 | Mechanism heading |
-| Survey | 1 | Step label |
-| Choose one local folder. | 4 | Step |
-| Review | 1 | Step label |
-| Check each destination you want. | 5 | Step |
-| Move | 1 | Step label |
-| Copy, verify, then keep a receipt. | 6 | Step |
-| Optional Pro license | 3 | Plain label |
-| Remove the 100-file move limit | 6 | Concrete upgrade heading |
-| Free includes surveys, editing, exports, undo, and 100 moves per run. | 11 | `free-limit` |
-| A $19 one-time Triagebox Pro license removes the per-run limit. | 10 | `free-limit` |
-| Your safety controls stay free. | 5 | Free-tier statement |
-| Buy Pro on Sociobot/Dodo · $19 | 5 | External purchase action |
-| Opens in a new site | 5 | External-link disclosure |
-| Have a license? | 3 | Restore disclosure |
-| Restore it | 2 | Restore action |
-| License token | 2 | Form label |
-| Verify license | 2 | Form action |
-| Checkout opens on Sociobot/Dodo. | 4 | `checkout-origin` |
-| See terms and privacy. | 4 | Legal links |
-| Review file moves before they happen. | 6 | Footer description |
-| Privacy | 1 | Legal link |
-| Terms | 1 | Legal link |
-| View source on GitHub | 4 | External source link |
-| Map artwork generated for Triagebox · 2026 · v1.0.2 · build [commit] | 9 | Provenance and build identity |
-| A newer Triagebox version is ready. | 6 | Genuine-update notice only |
-| Refresh to update the app. | 5 | Update explanation |
-| Dismiss | 1 | Update notice action |
+| Triagebox | 1 | OK |
+| Demo | 1 | OK |
+| Review files | 2 | OK |
+| Upgrade | 1 | OK |
+| Privacy | 1 | OK |
+| Organize files locally · No uploads | 5 | OK |
+| Organize a folder. Review every move. | 6 | OK |
+| For people cleaning a messy folder, Triagebox shows where each file will go before it moves. | 16 | OK |
+| Try it with sample data | 5 | OK |
+| See five proposed destinations. Nothing is saved. | 7 | OK |
+| Offline | 1 | OK |
+| Price | 1 | OK |
+| Files stay in this browser | 5 | OK |
+| Works offline after the first visit | 6 | OK |
+| Free: 100 moves per run · Pro: $19 once | 8 | OK |
+| See every proposed destination before moving a file. | 8 | OK |
+| No folder permission requested yet. | 5 | OK |
+| File details stay in this browser | 6 | OK |
+| Choose and review a folder | 5 | OK |
+| Open one folder. Nothing moves yet. | 6 | OK |
+| After you choose a folder, Triagebox suggests a destination from each file’s type and year. | 15 | OK |
+| Choose a folder | 3 | OK |
+| Preview a folder | 3 | OK |
+| Import plan JSON | 3 | OK |
+| Undo from receipt | 3 | OK |
+| Try the five-file sample | 4 | OK |
+| How review-before-move works | 3 | OK |
+| 1. Choose Choose one local folder. | 6 | OK |
+| 2. Review Check each destination you want. | 7 | OK |
+| 3. Move Copy, verify, then keep a receipt. | 8 | OK |
+| Optional Pro license | 3 | OK |
+| Remove the 100-file move limit | 5 | OK |
+| Free runs move up to 100 files. A $19 one-time Triagebox Pro license removes the per-run limit. | 17 | OK |
+| Checkout opens on Sociobot/Dodo. See terms and privacy. | 8 | OK |
+| Buy Pro on Sociobot/Dodo · $19 | 5 | OK |
+| Have a license? Restore it | 5 | OK |
+| License token | 2 | OK |
+| Verify license | 2 | OK |
+| Review file moves before they happen. | 6 | OK |
+| Terms | 1 | OK |
+| View source on GitHub | 4 | OK |
+| Map artwork generated for Triagebox · 2026 · v1.1.0 · build polish3 | 9 | OK |
 
-## Demo-specific rendered copy
+## Demo route
 
-| Copy unit | Words | Evidence |
+| Exact copy unit | Words | Result |
 | --- | ---: | --- |
-| Demo — sample data, nothing is saved | 7 | Required persistent banner |
-| Sample destinations stay separate from your local survey. | 8 | `demo-sandbox` |
-| Reset demo | 2 | `demo-sandbox` |
-| Start for real | 3 | Deletes demo record before exit |
-| Five sample destinations loaded. | 4 | Demo status |
-| No real files are connected. | 5 | Sandbox boundary |
-| Review this folder · Sample folder | 6 | Demo section label |
-| Review every proposed destination. | 4 | Review heading |
-| Preview only. | 2 | Capability state |
-| Export this plan or reopen in desktop Chrome/Edge to move files. | 11 | Next step |
-| Filter proposed destinations | 3 | Search label |
-| No proposed destinations match this search. | 6 | Empty filter state |
-| Clear the filter to see the full survey. | 8 | Empty filter next step |
-| 0 file moves approved | 4 | Approval status |
-| Only checked rows will move. | 5 | `approval-required` |
-| Demo reset. | 2 | Reset status |
-| The five sample destinations are back. | 6 | Reset result |
+| Demo — sample data, nothing is saved | 6 | OK |
+| Sample destinations stay separate from your saved folder review. | 9 | OK |
+| Reset demo | 2 | OK |
+| Start for real | 3 | OK |
+| Five-file sample | 2 | OK |
+| Review five sample file destinations. | 5 | OK |
+| Change an approval, file category, or name. No real folder is connected. | 12 | OK |
+| Five sample destinations loaded. No real files are connected. | 9 | OK |
+| Folder review | 2 | OK |
+| Sample folder | 2 | OK |
+| 0 file moves approved · 5 files · 13 MB | 8 | OK |
+| Filter proposed destinations | 3 | OK |
+| IMG_4821.jpg | 1 | OK |
+| contract-final.pdf | 1 | OK |
+| voice-note.m4a | 1 | OK |
+| archive-2019.zip | 1 | OK |
+| notes.txt | 1 | OK |
+| Camera uploads/IMG_4821.jpg · 3.3 MB | 4 | OK |
+| Downloads/contract-final.pdf · 823 KB | 3 | OK |
+| Phone backup/voice-note.m4a · 1.2 MB | 4 | OK |
+| Old/archive-2019.zip · 8.0 MB | 3 | OK |
+| Desktop/notes.txt · 8.8 KB | 3 | OK |
+| JPG · modified 2025 | 3 | OK |
+| PDF · modified 2024 | 3 | OK |
+| M4A · modified 2023 | 3 | OK |
+| ZIP · modified 2022 | 3 | OK |
+| TXT · modified 2021 | 3 | OK |
+| /2025/ | 1 | OK |
+| /2024/ | 1 | OK |
+| /2023/ | 1 | OK |
+| /2022/ | 1 | OK |
+| /2021/ | 1 | OK |
+| Awaiting review | 2 | OK |
+| Approve displayed (5) | 3 | OK |
+| Clear displayed (5) | 3 | OK |
+| Export plan JSON | 3 | OK |
+| Name, category, or year | 4 | OK |
 
-## README sentences
+## Conditional update notice
 
-| Sentence or control | Words | Evidence |
+| Exact copy unit | Words | Result |
 | --- | ---: | --- |
-| Triagebox organizes messy folders after you review every proposed move. | 10 | Plain opening |
-| It lists files in nested folders and suggests a destination by type and year. | 14 | `recursive-inventory`; `deterministic-routes` |
-| You review each suggestion before moving files. | 7 | `approval-required` |
-| Each run can export JSON and CSV receipts and can be undone without overwriting an existing original path. | 18 | `receipt-json`; `receipt-csv`; `reversible-move` |
-| Live product: local-file-triage.sociobot.in | 3 | Product link |
-| Open /demo or choose Try it with sample data. | 9 | Demo instruction |
-| The five-file sample is isolated from your saved local survey. | 10 | `demo-sandbox` |
-| Reset demo restores the sample. | 4 | `demo-sandbox` |
-| Start for real returns to your separate survey. | 9 | `demo-sandbox` |
-| Details are in .factory/demo.md. | 4 | Documentation link |
-| For people cleaning or migrating folders with 1,000–10,000 files. | 9 | Audience |
-| File details stay in your browser, and nothing moves without review. | 10 | `real-file-locality`; `approval-required` |
-| Triagebox asks for folder access only after you choose a folder. | 10 | `permission-on-action` |
-| File type and modified year choose each proposed destination. | 9 | `deterministic-routes` |
-| The editable plan does nothing until you approve a specific run. | 10 | `approval-required` |
-| For each move, Triagebox copies bytes, checks the destination size, then removes the source. | 12 | `reversible-move` |
-| Name collisions receive (2), (3), and so on. | 8 | `reversible-move` |
-| Nothing is overwritten. | 3 | `reversible-move` |
-| The receipt records original and destination paths, byte size, original timestamp, outcome, and errors. | 13 | `receipt-original-timestamp` |
-| Undo uses the same copy, check, and remove sequence in reverse. | 11 | `undo-retry`; `reversible-move` |
-| Browser file APIs cannot restore a copied file’s modified date. | 10 | Honest platform limit |
-| Keep a separate backup during important migrations. | 7 | Safety advice |
-| Desktop folder choice is available in current Chrome or Edge. | 10 | `browser-capabilities` |
-| Other browsers and mobile devices can preview a folder and export a plan. | 12 | `browser-capabilities` |
-| Your last survey and receipt use IndexedDB. | 8 | `storage-boundary` |
-| The demo uses demo:latest; real work uses latest. | 7 | `storage-boundary` |
-| The optional Pro token and its check result use namespaced localStorage keys. | 12 | `storage-boundary` |
-| There are no analytics, third-party scripts, or CDN fonts. | 9 | `no-tracking-runtime` |
-| Supporting browsers receive the manifest and service worker needed to install Triagebox. | 12 | `installable` |
-| The app reloads offline after your first visit. | 8 | `offline-reload` |
-| Read the full privacy policy and terms. | 7 | Legal links |
-| The free tier includes surveys, per-file review and edits, exports, undo, and 100 file moves per run. | 17 | `free-limit` |
-| Triagebox Pro is a $19 one-time license that removes the per-run limit. | 12 | `free-limit` |
-| Checkout opens a page hosted by Sociobot/Dodo. | 7 | `checkout-origin` |
-| License checks use the Sociobot billing API. | 7 | `checkout-origin` |
-| Requires Node.js 22+. | 3 | Developer prerequisite |
-| npm test runs unit tests, builds production output, then runs Chromium desktop and mobile checks. | 15 | Test documentation |
-| Playwright 1.58.2 is pinned for the factory image. | 8 | Tooling documentation |
-| The static deployment root is dist/, with dist/index.html at its root. | 12 | Deployment documentation |
-| Product and visual decisions: .factory/design.md. | 5 | Documentation link |
-| Observable product claims and regression commands: .factory/claims.json. | 7 | Documentation link |
-| Build handoff: .factory/handoff.md. | 4 | Documentation link |
-| License: MIT. | 2 | License statement |
+| A newer Triagebox version is ready. Refresh to update the app. | 11 | OK |
+| Dismiss | 1 | OK |
+
+## README headings and sentences
+
+| Exact copy unit | Words | Result |
+| --- | ---: | --- |
+| Triagebox | 1 | OK |
+| Triagebox organizes messy folders after you review every proposed move. | 10 | OK |
+| It lists files in nested folders and suggests a destination by type and year. | 14 | OK |
+| You review each suggestion before moving files. | 7 | OK |
+| Each run can export JSON and CSV receipts and can be undone without overwriting an existing original path. | 18 | OK |
+| Live product: https://local-file-triage.sociobot.in | 3 | OK |
+| Try the sample | 3 | OK |
+| Open https://local-file-triage.sociobot.in/?demo=1 or choose Try it with sample data. | 10 | OK |
+| The five-file sample is isolated from your saved folder review. | 10 | OK |
+| Reset demo restores the sample. | 5 | OK |
+| Start for real returns to your separate folder review. | 9 | OK |
+| Details are in .factory/demo.md. | 4 | OK |
+| Who it is for | 4 | OK |
+| For people cleaning or migrating folders. | 6 | OK |
+| File details stay in your browser, and nothing moves without review. | 11 | OK |
+| Safety model | 2 | OK |
+| Triagebox asks for folder access only after you choose a folder. | 11 | OK |
+| File type and modified year choose each proposed destination. | 9 | OK |
+| The editable plan does nothing until you approve a specific run. | 11 | OK |
+| For each move, Triagebox copies bytes, checks the destination size, then removes the source. | 14 | OK |
+| Name collisions receive (2), (3), and so on. | 8 | OK |
+| Nothing is overwritten. | 3 | OK |
+| The receipt records original and destination paths, byte size, original timestamp, outcome, and errors. | 14 | OK |
+| Undo uses the same copy, check, and remove sequence in reverse. | 11 | OK |
+| Triagebox records the original date in the receipt. | 8 | OK |
+| It does not promise to preserve the copied file’s modified date. | 11 | OK |
+| Keep a separate backup during important migrations. | 7 | OK |
+| Exported plan JSON can be imported after choosing the matching folder. | 11 | OK |
+| Exact path, size, and date matches regain their edits and approvals. | 11 | OK |
+| Changed or missing files stay unapproved and are reported. | 9 | OK |
+| Browser support and privacy | 4 | OK |
+| Writable folder choice appears when your browser supports it. | 9 | OK |
+| Other browsers and mobile devices can preview a folder and export a plan. | 13 | OK |
+| Your last folder review and receipt use IndexedDB. | 8 | OK |
+| The demo uses demo:latest; real work uses latest. | 8 | OK |
+| The optional Pro token and its check result use namespaced localStorage keys. | 12 | OK |
+| There are no analytics, third-party scripts, or CDN fonts. | 9 | OK |
+| Supporting browsers receive the manifest and service worker needed to install Triagebox. | 12 | OK |
+| The app reloads offline after your first visit. | 8 | OK |
+| Read the full privacy policy and terms. | 7 | OK |
+| Free and Pro | 3 | OK |
+| The free tier includes folder scans, per-file review and edits, exports, undo, and 100 file moves per run. | 18 | OK |
+| Triagebox Pro is a $19 one-time license that removes the per-run limit. | 12 | OK |
+| Checkout opens a page hosted by Sociobot/Dodo. | 7 | OK |
+| License checks use the Sociobot billing API. | 7 | OK |
+| Develop and verify | 3 | OK |
+| Development is verified with Node.js 22. | 6 | OK |
+| npm test runs unit, copy, build, and Chromium desktop and mobile checks. | 12 | OK |
+| Playwright 1.58.2 is pinned for the factory image. | 8 | OK |
+| The static deployment root is dist/, with dist/index.html at its root. | 11 | OK |
+| Product documentation | 2 | OK |
+| Product and visual decisions: .factory/design.md. | 5 | OK |
+| Observable product claims and regression commands: .factory/claims.json. | 7 | OK |
+| Build handoff: .factory/handoff.md. | 3 | OK |
+| License: MIT. | 2 | OK |
 
 ## Terminology
 
 | Concept | Product word |
 | --- | --- |
 | Local directory | folder |
+| Saved local state | folder review |
 | Suggested file location | proposed destination |
 | User decision | approval |
 | Intended operation | file move |

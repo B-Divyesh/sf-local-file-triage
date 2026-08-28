@@ -1,16 +1,18 @@
 {
   "name": "triagebox",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "VITE_BUILD_ID=$(git rev-parse --short HEAD) tsc --noEmit && VITE_BUILD_ID=$(git rev-parse --short HEAD) vite build",
+    "build": "VITE_BUILD_ID=polish3 tsc --noEmit && VITE_BUILD_ID=polish3 vite build",
+    "audit:copy": "node scripts/copy-audit.mjs",
+    "test:copy": "node scripts/copy-audit.mjs --check",
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0",
     "test:unit": "vitest run tests/*.test.ts",
     "test:e2e": "playwright test",
-    "test": "npm run test:unit && npm run build && npm run test:e2e"
+    "test": "npm run test:unit && npm run build && npm run test:copy && npm run test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -1,0 +1,32 @@
+{
+  "schema": "triagebox-plan-v1",
+  "rootName": "Plan folder",
+  "createdAt": "2026-08-28T00:00:00.000Z",
+  "note": "Reviewed sample plan for the import claim test.",
+  "actions": [
+    {
+      "approved": true,
+      "originalPath": "exact.txt",
+      "destinationPath": "Triagebox/Archives/2023/keep-exact.txt",
+      "size": 3,
+      "lastModified": 1700000000000,
+      "reason": "TXT · modified 2023"
+    },
+    {
+      "approved": true,
+      "originalPath": "changed.txt",
+      "destinationPath": "Triagebox/Documents/2023/review-changed.txt",
+      "size": 99,
+      "lastModified": 1700000000000,
+      "reason": "TXT · modified 2023"
+    },
+    {
+      "approved": true,
+      "originalPath": "missing.txt",
+      "destinationPath": "Triagebox/Documents/2023/missing.txt",
+      "size": 7,
+      "lastModified": 1700000000000,
+      "reason": "TXT · modified 2023"
+    }
+  ]
+}
