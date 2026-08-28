@@ -138,7 +138,10 @@ export async function undoManifest(root: DirectoryHandleLike, manifest: TriageMa
   if (manifest.schema !== 'triagebox-manifest-v1') throw new Error('This is not a supported Triagebox manifest.');
   let done = 0;
   for (const action of manifest.actions) {
-    if (action.status !== 'moved') continue;
+    // Failed undo actions retain the destination copy. Retrying them is safe:
+    // we still refuse to overwrite an original path and re-verify the copy.
+    // An already-undone action has no destination to restore from.
+    if (action.status === 'undone') continue;
     try {
       const destination = await findFile(root, action.destinationPath);
       const originalParts = action.originalPath.split('/').filter(Boolean);

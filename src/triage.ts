@@ -51,6 +51,7 @@ export function classifyFile(file: Pick<FileFact, 'name' | 'type'>): Bucket {
 }
 
 export function safeName(input: string, fallback: string): string {
+  // eslint-disable-next-line no-control-regex -- reject filesystem control characters.
   const cleaned = input.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim();
   return cleaned && cleaned !== '.' && cleaned !== '..' ? cleaned : fallback;
 }
@@ -67,7 +68,9 @@ export function createProposal(file: FileFact, index: number): PlanItem {
     year,
     destinationName: file.name,
     reason: `${detail} · modified ${year}`,
-    approved: true,
+    // A route is deliberately inert until the person reviewing it checks it.
+    // This is a safety boundary, not merely a presentation preference.
+    approved: false,
     status: 'proposed'
   };
 }

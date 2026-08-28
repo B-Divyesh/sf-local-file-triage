@@ -1,7 +1,7 @@
 import './styles.css';
 import { BUCKETS, createProposal, destinationFor, formatBytes, manifestToCsv, safeName, type PlanItem, type TriageManifest } from './triage';
 import { buildManifest, movePlanItem, scanDirectory, scanInputFiles, undoManifest, type DirectoryHandleLike, type SourceMap } from './filesystem';
-import { loadSurvey, saveSurvey } from './storage';
+import { loadSurvey, saveSurvey, type StorageNamespace } from './storage';
 import { cachedPro, captureReturnedLicense, checkoutUrl, restoreLicense, storedToken, verifyLicense } from './license';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -16,21 +16,34 @@ let visibleCount = 100;
 let manifest: TriageManifest | undefined;
 let isPro = cachedPro();
 let notice = '';
+let demoMode = false;
+let persistQueue: Promise<void> = Promise.resolve();
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 
 function shell(content: string): string {
   return `<header class="site-header">
     <a class="brand" href="/" aria-label="Triagebox home"><img src="/icons/triagebox-mark.svg" alt="" width="36" height="36"><span>Triagebox</span></a>
-    <nav aria-label="Primary"><a href="/#workbench">Workbench</a><a href="/#unlock">Upgrade</a></nav>
-  </header>${content}<footer><div><strong>Triagebox</strong><p>Private terrain stays on your device.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage">Source</a></nav><p class="provenance">Map artwork generated for Triagebox · 2026</p></footer>
+    <nav aria-label="Primary"><a href="/demo">Demo</a><a href="/#workbench">Workbench</a><a href="/#unlock">Upgrade</a></nav>
+  </header>${content}<footer><div><strong>Triagebox</strong><p>Private terrain stays on your device.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage">Source</a></nav><p class="provenance">Map artwork generated for Triagebox · 2026 · build 1.0.1</p></footer>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`;
+}
+
+const storageNamespace = (): StorageNamespace => demoMode ? 'demo' : 'real';
+
+async function persistSurvey(): Promise<void> {
+  if (!items.length && !manifest) return;
+  // Input events can arrive faster than IndexedDB transactions. Serialising
+  // immutable snapshots prevents an older edit from committing after a newer one.
+  const snapshot = { rootName, savedAt: new Date().toISOString(), items: structuredClone(items), manifest: manifest && structuredClone(manifest) };
+  persistQueue = persistQueue.catch(() => undefined).then(() => saveSurvey(snapshot, storageNamespace()));
+  await persistQueue;
 }
 
 function renderLegal(kind: 'privacy' | 'terms'): void {
   const privacy = `<p class="eyebrow">Field note 01 · Effective 28 August 2026</p><h1>Your files do not leave the map.</h1>
     <p class="lede">Triagebox processes file names, types, dates, and contents in your browser. It does not upload, sell, or profile them.</p>
-    <h2>What stays on your device</h2><p>Your latest survey and audit receipt are stored in this browser’s IndexedDB. A license token and its verification time are stored in localStorage. Folder access is controlled by your browser and operating system; Triagebox can only access a folder after you choose it.</p>
+    <h2>What stays on your device</h2><p>Your latest real survey and audit receipt are stored in this browser’s IndexedDB. The sample demo uses a separate IndexedDB record and never reads or writes your real survey. A license token and its verification time are stored in localStorage. Folder access is controlled by your browser and operating system; Triagebox can only access a folder after you choose it.</p>
     <h2>What crosses the network</h2><p>The app shell loads from this site. If you buy or restore Pro, your license token is sent to the Sociobot billing API to verify access. Sociobot/Dodo is the merchant of record and processes checkout details under its own terms. Your file data is never included.</p>
     <h2>Your control</h2><p>Clear this site’s storage to remove local surveys and the license token. Exported manifests are ordinary files under your control. Revoking folder permission in browser settings ends access.</p>
     <h2>Contact</h2><p>Privacy questions can be sent through the project’s public issue tracker. Do not include private filenames or license tokens.</p>`;
@@ -71,6 +84,10 @@ function proposalRows(): string {
   </article>`).join('')}${shown.length < filtered.length ? `<button class="load-more" data-action="more">Show 100 more <span>(${filtered.length - shown.length} remain)</span></button>` : ''}`;
 }
 
+function displayedItems(): PlanItem[] {
+  return visibleItems().slice(0, visibleCount);
+}
+
 function workbench(): string {
   const summary = stats();
   const fileApi = Boolean(window.showDirectoryPicker);
@@ -81,13 +98,13 @@ function workbench(): string {
     ${!fileApi ? '<p class="callout warning"><strong>Read-only browser:</strong> folder write access needs desktop Chrome or Edge. You can still preview and export a plan here.</p>' : ''}
     <input id="folder-input" type="file" webkitdirectory multiple hidden aria-label="Choose a folder for read-only preview">
     <input id="manifest-input" type="file" accept="application/json,.json" hidden aria-label="Choose a Triagebox JSON receipt to undo">
-    <div class="trust-strip"><span>① Local scan</span><span>② You approve</span><span>③ Copy + verify</span><span>④ Undo receipt</span></div>
+    <section class="how-it-works" aria-labelledby="how-it-works-title"><h3 id="how-it-works-title">How a safe cleanup works</h3><ol class="trust-strip"><li><strong>1. Survey</strong>Choose one local folder.</li><li><strong>2. Review</strong>Check each route you want.</li><li><strong>3. Move</strong>Copy, verify, then keep a receipt.</li></ol></section>${manifest ? receipt() : ''}
   </section>`;
   const previewNote = writable ? 'Write access granted. Approved rows can move.' : 'Preview only. Export this plan or reopen in desktop Chrome/Edge to move files.';
   return `<section id="workbench" class="workbench" aria-labelledby="workbench-title">
     <div class="workbench-head"><div><div class="section-index">02 / Survey station · ${escapeHtml(rootName)}</div><h2 id="workbench-title">Review every proposed route.</h2><p>${previewNote}</p></div><div class="head-actions"><button data-action="import-undo" ${busy || !window.showDirectoryPicker ? 'disabled' : ''}>Undo from receipt</button><button data-action="new-scan">Survey another folder</button></div></div>
     <div class="legend" aria-label="Survey summary"><div><strong>${items.length.toLocaleString()}</strong><span>files mapped</span></div><div><strong>${summary.approved.toLocaleString()}</strong><span>approved</span></div><div><strong>${formatBytes(summary.bytes)}</strong><span>surveyed</span></div><div><strong>${summary.moved.toLocaleString()}</strong><span>moved</span></div></div>
-    <div class="queue-tools"><label class="search"><span>Filter routes</span><input type="search" id="filter" value="${escapeHtml(query)}" placeholder="Name, bucket, or year"></label><div class="bulk"><button data-action="approve-all">Approve visible</button><button data-action="approve-none">Clear visible</button><button data-action="export-plan">Export plan JSON</button></div></div>
+    <div class="queue-tools"><label class="search"><span>Filter routes</span><input type="search" id="filter" value="${escapeHtml(query)}" placeholder="Name, bucket, or year"></label><div class="bulk"><button data-action="approve-all">Approve displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="approve-none">Clear displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="export-plan">Export plan JSON</button></div></div>
     <div class="queue-labels" aria-hidden="true"><span>Approve / source</span><span>Reason</span><span>Destination</span><span>Name / status</span></div>
     <div class="file-queue" aria-label="Proposed file moves">${proposalRows()}</div>
     <div class="action-rail"><div><strong>${summary.approved.toLocaleString()} route${summary.approved === 1 ? '' : 's'} approved</strong><span>${!isPro && summary.approved > 100 ? 'Free runs move the first 100. The rest remain safely queued.' : 'Only checked rows will move.'}</span></div><button class="primary" data-action="execute" ${busy || !writable || summary.approved === 0 ? 'disabled' : ''}>${busy ? 'Working…' : `Move ${!isPro && summary.approved > 100 ? 'first 100' : summary.approved} approved`}</button></div>
@@ -101,7 +118,8 @@ function receipt(): string {
   const moved = manifest.actions.filter(action => action.status === 'moved').length;
   const failed = manifest.actions.filter(action => action.status === 'failed').length;
   const undone = manifest.actions.filter(action => action.status === 'undone').length;
-  return `<section class="receipt" aria-labelledby="receipt-title"><div><p class="eyebrow">Portable receipt · ${escapeHtml(manifest.runId.slice(0, 8))}</p><h3 id="receipt-title">${moved} moved · ${undone} undone · ${failed} need attention</h3><p>Keep this receipt beside your backup. It records original paths, destinations, byte sizes, and original modified dates.</p></div><div class="receipt-actions"><button data-action="export-json">Export JSON</button><button data-action="export-csv">Export CSV</button><button data-action="undo" ${busy || moved === 0 || !rootHandle ? 'disabled' : ''}>Undo this run</button></div></section>`;
+  const retryable = moved + failed;
+  return `<section class="receipt" aria-labelledby="receipt-title"><div><p class="eyebrow">Portable receipt · ${escapeHtml(manifest.runId.slice(0, 8))}</p><h3 id="receipt-title">${moved} moved · ${undone} undone · ${failed} need attention</h3><p>Keep this receipt beside your backup. It records original paths, destinations, byte sizes, and original modified dates.</p></div><div class="receipt-actions"><button data-action="export-json">Export JSON</button><button data-action="export-csv">Export CSV</button><button data-action="undo" ${busy || retryable === 0 || !rootHandle ? 'disabled' : ''}>${failed ? 'Retry undo' : 'Undo this run'}</button></div></section>`;
 }
 
 function upgrade(): string {
@@ -110,9 +128,10 @@ function upgrade(): string {
 
 function render(): void {
   const online = navigator.onLine;
-  app.innerHTML = shell(`${!online ? '<div class="network-note" role="status">Offline map active — local scans and saved receipts still work.</div>' : ''}<main id="main">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">Private file cartography · No uploads</p><h1>Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">Triagebox maps a messy folder into clear, deterministic routes. You inspect every destination; it moves only checked files and leaves a portable undo receipt.</p><div class="hero-actions"><a class="button primary" href="#workbench">Start a local survey</a><span>Best in desktop Chrome or Edge</span></div><dl class="coordinates"><div><dt>Network</dt><dd>None for files</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs are connected by one deliberate survey route" fetchpriority="high" decoding="async"></picture><figcaption>Mess becomes terrain once every route is visible.</figcaption></figure></section>
-    <div class="status-line"><span class="status-dot ${busy ? 'busy' : ''}"></span><span id="activity">${escapeHtml(notice || (items.length ? `${items.length.toLocaleString()} files in the current survey` : 'Ready. No folder permission requested yet.'))}</span><span class="coord">51.000° LOCAL / 0 BYTES UPLOADED</span></div>
+  const demoBanner = demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span>Sample routes stay separate from your local survey.</span><button data-action="reset-demo">Reset demo</button><a href="/">Start for real</a></aside>' : '';
+  app.innerHTML = shell(`${!online ? '<div class="network-note" role="status">Offline map active — local scans and saved receipts still work.</div>' : ''}${demoBanner}<main id="main">
+    <section class="hero"><div class="hero-copy"><p class="eyebrow">Private file cartography · No uploads</p><h1>Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">For people cleaning a messy folder, Triagebox shows each local route before any checked file moves.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See five routes. Nothing is saved.</span></div><dl class="coordinates"><div><dt>Network</dt><dd>None for files</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs are connected by one deliberate survey route" fetchpriority="high" decoding="async"></picture><figcaption>Mess becomes terrain once every route is visible.</figcaption></figure></section>
+    <div class="status-line"><span class="status-dot ${busy ? 'busy' : ''}"></span><span id="activity" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(notice || (items.length ? `${items.length.toLocaleString()} files in the current survey` : 'Ready. No folder permission requested yet.'))}</span><span class="coord">51.000° LOCAL / 0 BYTES UPLOADED</span></div>
     ${workbench()}${upgrade()}</main>`);
   bindEvents();
 }
@@ -131,10 +150,10 @@ function rowItem(target: Element): PlanItem | undefined {
 function bindEvents(): void {
   document.querySelectorAll<HTMLElement>('[data-action]').forEach(control => control.addEventListener('click', onAction));
   document.querySelectorAll<HTMLSelectElement>('[data-action="bucket"]').forEach(select => select.addEventListener('change', event => {
-    const item = rowItem(event.currentTarget as Element); if (item) item.bucket = select.value as typeof item.bucket;
+    const item = rowItem(event.currentTarget as Element); if (item) { item.bucket = select.value as typeof item.bucket; void persistSurvey(); }
   }));
-  document.querySelectorAll<HTMLInputElement>('[data-action="rename"]').forEach(input => input.addEventListener('change', event => {
-    const item = rowItem(event.currentTarget as Element); if (item) { item.destinationName = safeName(input.value, item.name); input.value = item.destinationName; }
+  document.querySelectorAll<HTMLInputElement>('[data-action="rename"]').forEach(input => input.addEventListener('input', event => {
+    const item = rowItem(event.currentTarget as Element); if (item) { item.destinationName = safeName(input.value, item.name); input.value = item.destinationName; void persistSurvey(); }
   }));
   const filter = document.querySelector<HTMLInputElement>('#filter');
   filter?.addEventListener('input', () => { query = filter.value; visibleCount = 100; const queue = document.querySelector('.file-queue'); if (queue) queue.innerHTML = proposalRows(); bindQueueEvents(); });
@@ -145,8 +164,8 @@ function bindEvents(): void {
 
 function bindQueueEvents(): void {
   document.querySelectorAll<HTMLElement>('.file-queue [data-action]').forEach(control => control.addEventListener('click', onAction));
-  document.querySelectorAll<HTMLSelectElement>('.file-queue [data-action="bucket"]').forEach(select => select.addEventListener('change', () => { const item = rowItem(select); if (item) item.bucket = select.value as typeof item.bucket; }));
-  document.querySelectorAll<HTMLInputElement>('.file-queue [data-action="rename"]').forEach(input => input.addEventListener('change', () => { const item = rowItem(input); if (item) item.destinationName = safeName(input.value, item.name); }));
+  document.querySelectorAll<HTMLSelectElement>('.file-queue [data-action="bucket"]').forEach(select => select.addEventListener('change', () => { const item = rowItem(select); if (item) { item.bucket = select.value as typeof item.bucket; void persistSurvey(); } }));
+  document.querySelectorAll<HTMLInputElement>('.file-queue [data-action="rename"]').forEach(input => input.addEventListener('input', () => { const item = rowItem(input); if (item) { item.destinationName = safeName(input.value, item.name); void persistSurvey(); } }));
 }
 
 async function onAction(event: Event): Promise<void> {
@@ -154,11 +173,12 @@ async function onAction(event: Event): Promise<void> {
   const action = target.dataset.action;
   if (action === 'scan') await chooseFolder();
   if (action === 'preview') document.querySelector<HTMLInputElement>('#folder-input')?.click();
-  if (action === 'example') loadExample();
+  if (action === 'example') await loadExample();
   if (action === 'new-scan') { items = []; sources.clear(); rootHandle = undefined; manifest = undefined; rootName = ''; writable = false; notice = ''; render(); }
+  if (action === 'reset-demo' && demoMode) { await loadExample(true); }
   if (action === 'import-undo') document.querySelector<HTMLInputElement>('#manifest-input')?.click();
-  if (action === 'approve') { const item = rowItem(target); if (item) item.approved = (target as HTMLInputElement).checked; updateApprovalSummary(); }
-  if (action === 'approve-all' || action === 'approve-none') { const approve = action === 'approve-all'; visibleItems().forEach(item => { if (item.status === 'proposed') item.approved = approve; }); render(); }
+  if (action === 'approve') { const item = rowItem(target); if (item) { item.approved = (target as HTMLInputElement).checked; await persistSurvey(); } updateApprovalSummary(); }
+  if (action === 'approve-all' || action === 'approve-none') { const approve = action === 'approve-all'; displayedItems().forEach(item => { if (item.status === 'proposed') item.approved = approve; }); await persistSurvey(); render(); }
   if (action === 'more') { visibleCount += 100; render(); document.querySelector('.file-row:nth-last-of-type(100)')?.scrollIntoView({ block: 'nearest' }); }
   if (action === 'execute') await executePlan();
   if (action === 'export-plan') exportPlan();
@@ -185,7 +205,7 @@ async function chooseFolder(): Promise<void> {
     const result = await scanDirectory(rootHandle, (count, path) => { if (count < 10 || count % 25 === 0) updateActivity(`Surveying ${count.toLocaleString()} files · ${path}`); });
     items = result.items; sources = result.sources; manifest = undefined; visibleCount = 100;
     notice = items.length ? `Survey complete. ${items.length.toLocaleString()} files mapped; nothing moved.` : 'That folder is empty. Choose another folder when you are ready.';
-    await saveSurvey({ rootName, savedAt: new Date().toISOString(), items });
+    await persistSurvey();
   } catch (error) {
     notice = (error as DOMException).name === 'AbortError' ? 'Folder selection cancelled. Nothing was read.' : `Survey stopped: ${error instanceof Error ? error.message : 'Could not read that folder.'}`;
   } finally { busy = false; render(); }
@@ -198,10 +218,10 @@ async function previewFiles(event: Event): Promise<void> {
   items = await scanInputFiles(input.files, (count, path) => { if (count % 50 === 0) updateActivity(`Mapping ${count.toLocaleString()} files · ${path}`); });
   rootName = input.files[0] && ((input.files[0] as File & { webkitRelativePath?: string }).webkitRelativePath?.split('/')[0] || 'Preview folder');
   rootHandle = undefined; sources.clear(); writable = false; manifest = undefined; busy = false; notice = `${items.length.toLocaleString()} files mapped in read-only preview; nothing moved.`;
-  await saveSurvey({ rootName, savedAt: new Date().toISOString(), items }); render();
+  await persistSurvey(); render();
 }
 
-function loadExample(): void {
+async function loadExample(reset = false): Promise<void> {
   const now = new Date('2025-06-15').getTime();
   const examples = [
     ['IMG_4821.jpg', 'image/jpeg', 3_420_100, 'Camera uploads/IMG_4821.jpg'], ['contract-final.pdf', 'application/pdf', 842_300, 'Downloads/contract-final.pdf'],
@@ -209,7 +229,8 @@ function loadExample(): void {
     ['notes.txt', 'text/plain', 9012, 'Desktop/notes.txt']
   ] as const;
   items = examples.map((entry, index) => createProposal({ name: entry[0], type: entry[1], size: entry[2], lastModified: now - index * 31_536_000_000, relativePath: entry[3] }, index));
-  rootName = 'Example folder'; writable = false; rootHandle = undefined; sources.clear(); manifest = undefined; notice = 'Example survey loaded in preview mode. No real files are connected.'; render();
+  rootName = 'Example folder'; writable = false; rootHandle = undefined; sources.clear(); manifest = undefined; notice = reset ? 'Demo reset. The five sample routes are back.' : 'Example survey loaded in preview mode. No real files are connected.';
+  await persistSurvey(); render();
 }
 
 async function executePlan(): Promise<void> {
@@ -235,17 +256,17 @@ async function executePlan(): Promise<void> {
   manifest.completedAt = new Date().toISOString(); busy = false;
   const moved = manifest.actions.filter(action => action.status === 'moved').length;
   notice = `Run finished: ${moved} moved, ${manifest.actions.length - moved} need attention. Export the receipt now.`;
-  await saveSurvey({ rootName, savedAt: new Date().toISOString(), items, manifest }); render(); document.querySelector('.receipt')?.scrollIntoView({ behavior: 'smooth' });
+  await persistSurvey(); render(); document.querySelector('.receipt')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function undoCurrent(): Promise<void> {
   if (!rootHandle || !manifest) return;
-  const count = manifest.actions.filter(action => action.status === 'moved').length;
-  if (!window.confirm(`Undo ${count} moved file${count === 1 ? '' : 's'}? Existing original paths will never be overwritten.`)) return;
+  const count = manifest.actions.filter(action => action.status !== 'undone').length;
+  if (!window.confirm(`Undo or retry ${count} file${count === 1 ? '' : 's'}? Existing original paths will never be overwritten.`)) return;
   busy = true; render();
   manifest = await undoManifest(rootHandle, manifest, (done, total, path) => updateActivity(`Undoing ${done} of ${total} · ${path}`));
   for (const item of items) { const record = manifest.actions.find(action => action.originalPath === item.relativePath); if (record?.status === 'undone') item.status = 'undone'; if (record?.status === 'failed') { item.status = 'failed'; item.error = record.error; } }
-  busy = false; notice = 'Undo finished. Review the receipt for any paths needing attention.'; await saveSurvey({ rootName, savedAt: new Date().toISOString(), items, manifest }); render();
+  busy = false; notice = 'Undo finished. Review the receipt for any paths needing attention.'; await persistSurvey(); render();
 }
 
 async function importUndoReceipt(event: Event): Promise<void> {
@@ -260,7 +281,7 @@ async function importUndoReceipt(event: Event): Promise<void> {
     busy = true; manifest = imported; rootHandle = folder; rootName = folder.name; writable = true; items = []; render();
     manifest = await undoManifest(folder, manifest, (done, total, path) => updateActivity(`Undoing ${done} of ${total} · ${path}`));
     busy = false; notice = 'Imported undo finished. Export the updated receipt for your records.';
-    await saveSurvey({ rootName, savedAt: new Date().toISOString(), items, manifest }); render();
+    await persistSurvey(); render();
   } catch (error) {
     busy = false; notice = `Receipt could not be undone: ${error instanceof Error ? error.message : 'invalid file'}`; render();
   } finally { input.value = ''; }
@@ -284,15 +305,23 @@ async function onLicense(event: SubmitEvent): Promise<void> {
 async function boot(): Promise<void> {
   captureReturnedLicense();
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/privacy') { renderLegal('privacy'); registerPwa(); return; }
-  if (path === '/terms') { renderLegal('terms'); registerPwa(); return; }
+  if (path === '/privacy') { document.title = 'Privacy — Triagebox'; renderLegal('privacy'); registerPwa(); return; }
+  if (path === '/terms') { document.title = 'Terms — Triagebox'; renderLegal('terms'); registerPwa(); return; }
+  demoMode = path === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
+  if (path !== '/' && path !== '/demo') { document.title = 'Page not found — Triagebox'; renderNotFound(); registerPwa(); return; }
+  document.title = demoMode ? 'Demo — Triagebox' : 'Triagebox — local, reversible file triage';
   try {
-    const saved = await loadSurvey();
-    if (saved?.items.length) { items = saved.items; rootName = saved.rootName; manifest = saved.manifest; writable = false; notice = `Restored the last local survey from ${new Date(saved.savedAt).toLocaleDateString()}. Re-select the folder to perform moves.`; }
+    const saved = await loadSurvey(storageNamespace());
+    if (saved && (saved.items.length || saved.manifest)) { items = saved.items; rootName = saved.rootName; manifest = saved.manifest; writable = false; notice = demoMode ? 'Demo restored. Sample data remains separate from your local survey.' : `Restored the last local survey from ${new Date(saved.savedAt).toLocaleDateString()}. Re-select the folder to perform moves.`; }
+    else if (demoMode) await loadExample();
   } catch { notice = 'Local history is unavailable, but a new survey still works.'; }
   render();
   if (storedToken()) { const valid = await verifyLicense(); if (valid !== isPro) { isPro = valid; render(); } }
   registerPwa();
+}
+
+function renderNotFound(): void {
+  app.innerHTML = shell(`<main id="main" class="legal"><p class="eyebrow">Map edge</p><h1>This route is not on the map.</h1><p class="lede">Return to Triagebox to survey a folder or use the sample data.</p><p><a class="button primary" href="/">Open Triagebox</a></p></main>`);
 }
 
 function registerPwa(): void {

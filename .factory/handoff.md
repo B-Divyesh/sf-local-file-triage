@@ -1,53 +1,66 @@
-# Independent verification handoff — FAIL
+# Repair handoff — ready for release
 
 Date: 2026-08-28 UTC
-Work order: `local-file-triage-verify-1`
-Candidate: `a9750ba92270ef4b31182bdbc419cef3c5e76d44`
-Live URL: <https://local-file-triage.sociobot.in>
+Work order: `local-file-triage-repair-1`
+Base verifier report: `734e3fc9e8c67e7e70a5e05ba291513bd54c946d`
+Repaired candidate: recorded in the final repair commit.
 
-## Decision
+## What changed
 
-**FAIL — do not release this candidate.**
+- Added the required claim registry, demo documentation, and copy audit. Every
+  listed claim has one `@claim:` regression command.
+- Added a first-screen **Try it with sample data** action and `/demo`. It loads
+  five realistic routes immediately, displays a persistent demo banner, supports
+  reset/start-for-real, and uses IndexedDB key `demo:latest`, separate from the
+  real `latest` record.
+- New proposals are unchecked. Bulk actions now name and affect only the rows
+  currently rendered. Approval, bucket, and filename edits are serialized to
+  IndexedDB so a reload preserves the latest review.
+- Imported manifests with no plan rows keep their receipt and JSON/CSV exports
+  visible. A safely blocked undo remains retryable after the original-path
+  blocker is removed; retry still never overwrites an original file.
+- Added live activity announcements, 44 px mobile approval targets, three-step
+  how-it-works copy, canonical/social metadata, product 404, response-policy and
+  immutable-cache deployment configuration, build ID, and an ESLint gate.
 
-The live HTML/JS/CSS/PWA files match the candidate build. The earlier reported
-billing deployment failure is no longer present: the Sociobot checkout returned
-303 to a reachable live Dodo checkout, invalid-token verification worked, and a
-40-request verify burst was rate-limited with HTTP 429 plus `Retry-After: 4`.
+## Verification evidence
 
-Release remains blocked because `.factory/claims.json` is missing and there is
-no first-screen, isolated, resettable sample demo. New scans are also
-pre-approved; “visible” bulk controls alter hidden rows; review edits do not
-survive reload; imported undo hides the promised updated receipt; and a blocked
-undo cannot be retried after the blocker is removed.
-
-The complete evidence, exact hashes, severities, pass results, and retest order
-are in [`.factory/verification.md`](verification.md).
-
-## Verification summary
-
-- `npm ci`: PASS, 0 vulnerabilities.
-- `npm test`: PASS — 5/5 Vitest and 8/8 Playwright checks.
-- Exact production build/type check: PASS; `dist/` produced.
-- Lint: no lint command/configuration exists.
-- Live candidate identity: PASS by SHA-256 equality for HTML, JS, CSS, manifest,
-  and service worker.
-- Chromium real filesystem-handle move/collision/export/undo: PASS.
-- Normal, 101-file, 10,000-entry, empty, cancel, invalid-receipt, rename, and undo
-  recovery cases: exercised; blocking defects recorded in the report.
-- Offline home, sample, and privacy reload after first visit: PASS.
-- Axe serious/critical: 0; manual live-region and touch-target defects remain.
-- Lighthouse mobile: 100/100/100/100; LCP 1.3 s, TBT 70 ms, CLS 0.
-- Privacy: core flow stayed same-origin; optional billing used only Sociobot.
-
-## How to reproduce the repository checks
+Run from a clean dependency install:
 
 ```sh
 npm ci
+npm run lint
 npm test
-npm run build
-npm run preview
 ```
 
-Before reconsidering release, implement and run the six-step retest order at the
-end of `.factory/verification.md`. No product code was changed during this
-verification; only this handoff and the verification report were added/updated.
+- Unit/integration: 6/6 Vitest tests passed, including default-unapproved and
+  blocked-undo retry filesystem coverage.
+- Browser: 22/22 Playwright tests pass across Desktop Chrome and Pixel 5 (390 px
+  class). They cover the demo boundary/reset, default approval, exact 101-row
+  bulk scope, reload persistence, imported receipt exports, keyboard operation,
+  axe WCAG A/AA serious/critical = 0, touch targets, privacy requests, and
+  offline reload after service-worker installation.
+- Production build: `dist/` generated. Initial JS is 31.03 kB raw / 11.42 kB
+  gzip; CSS is 15.74 kB raw / 4.40 kB gzip; the mobile hero WebP is 32 kB.
+- Local mobile Lighthouse run: performance 98, accessibility 100, LCP 1.74 s,
+  CLS 0. The CLI emitted its result JSON before a post-audit browser-tab crash;
+  the scored report is at `/tmp/triagebox-lighthouse.json` in this worker.
+- Privacy: the claim test intercepts the full demo review flow and observed no
+  third-party request. Optional license traffic remains the disclosed Sociobot
+  exception and is not triggered by demo use.
+
+## Deploy
+
+Static deployment remains the original artifact class. Deploy `dist/` with the
+included `staticwebapp.config.json`; it carries CSP, frame, permissions,
+referrer, MIME, 404, and immutable asset-cache policy. `/demo` rewrites to the
+same app shell and unknown server routes receive the product 404 response.
+
+## Known limits
+
+- Writable moves still require desktop Chromium File System Access API. Mobile
+  and other browsers retain read-only preview and plan export.
+- Browser filesystem APIs cannot restore a copied file’s modified timestamp;
+  receipts record it instead.
+- `.factory/brief.json` was absent at the verifier base commit, so no brief file
+  was changed during this repair.

@@ -41,5 +41,11 @@ export interface SavedSurvey {
   manifest?: TriageManifest;
 }
 
-export const saveSurvey = (survey: SavedSurvey) => put('latest', survey);
-export const loadSurvey = () => get<SavedSurvey>('latest');
+export type StorageNamespace = 'real' | 'demo';
+
+// Demo records must never share the record used for a person's actual survey.
+// Keeping the namespace in the key also makes this boundary inspectable in DevTools.
+const surveyKey = (namespace: StorageNamespace) => namespace === 'demo' ? 'demo:latest' : 'latest';
+
+export const saveSurvey = (survey: SavedSurvey, namespace: StorageNamespace = 'real') => put(surveyKey(namespace), survey);
+export const loadSurvey = (namespace: StorageNamespace = 'real') => get<SavedSurvey>(surveyKey(namespace));

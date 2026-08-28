@@ -105,6 +105,7 @@ are hand-authored SVG/CSS primitives.
 
 Generated via the factory Azure image deployment (`factory-image`) on 2026-08-28.
 The generated source and exact prompt sidecar live in `assets/src/`. Product WebP
-derivatives live in `public/assets/`. Generated imagery is original to this
-product; hand-authored icons are MIT-licensed with the application.
-
+derivatives and the 1200×630 social crop (`triage-social.jpg`) live in
+`public/assets/`; the social crop is a mechanical derivative of that original
+asset. Generated imagery is original to this product; hand-authored icons are
+MIT-licensed with the application.

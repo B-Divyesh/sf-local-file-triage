@@ -30,7 +30,7 @@ class MemoryDirectory implements DirectoryHandleLike {
 }
 
 describe('reversible filesystem handoff', () => {
-  it('copies, verifies, avoids collisions, removes source, then restores it', async () => {
+  it('@claim:reversible-move copies, verifies, avoids collisions, removes source, then restores it', async () => {
     const root = new MemoryDirectory('Test folder');
     const incoming = await root.getDirectoryHandle('Incoming', { create: true });
     const source = new MemoryFile('notes.txt', new TextEncoder().encode('private notes'));
@@ -51,5 +51,26 @@ describe('reversible filesystem handoff', () => {
     expect(new TextDecoder().decode((await incoming.getFileHandle('notes.txt')).bytes)).toBe('private notes');
     expect(manifest.actions[0].status).toBe('undone');
     await expect(year.getFileHandle('notes (2).txt')).rejects.toThrow();
+  });
+
+  it('@claim:undo-retry retries a blocked undo once the original-path blocker is removed', async () => {
+    const root = new MemoryDirectory('Test folder');
+    const incoming = await root.getDirectoryHandle('Incoming', { create: true });
+    const source = new MemoryFile('notes.txt', new TextEncoder().encode('private notes'));
+    incoming.entriesMap.set(source.name, source);
+    const proposal = createProposal({ name: source.name, type: 'text/plain', size: source.bytes.length, lastModified: source.modified, relativePath: 'Incoming/notes.txt' }, 0);
+    const action = await movePlanItem(root, proposal, { file: source, parent: incoming, name: source.name });
+    const manifest = buildManifest(root.name); manifest.actions.push(action);
+
+    // Simulate a newly-created original that correctly blocks the first undo.
+    incoming.entriesMap.set(source.name, new MemoryFile(source.name, new Uint8Array([1])));
+    await undoManifest(root, manifest, () => undefined);
+    expect(manifest.actions[0].status).toBe('failed');
+    expect(await incoming.getFileHandle('notes.txt')).toBeDefined();
+
+    incoming.entriesMap.delete(source.name);
+    await undoManifest(root, manifest, () => undefined);
+    expect(manifest.actions[0].status).toBe('undone');
+    expect(new TextDecoder().decode((await incoming.getFileHandle('notes.txt')).bytes)).toBe('private notes');
   });
 });

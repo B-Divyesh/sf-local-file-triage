@@ -8,6 +8,14 @@ undone without overwriting an existing original path.
 
 Live product: <https://local-file-triage.sociobot.in>
 
+## Try the sample
+
+Open <https://local-file-triage.sociobot.in/demo> or choose **Try it with sample
+data** on the landing page. It opens five realistic sample routes in an isolated
+`demo:latest` IndexedDB record. **Reset demo** restores the sample; **Start for
+real** returns to the separate real-workbench record. Details are in
+[`.factory/demo.md`](.factory/demo.md).
+
 ## Who it is for
 
 People cleaning up or migrating a 1,000–10,000-file folder who do not want to
@@ -75,5 +83,7 @@ independent `privacy/` and `terms/` entries. Preview it locally with
 ## Project notes
 
 - Product/visual decisions: [`.factory/design.md`](.factory/design.md)
+- Observable product claims and their exact regression commands:
+  [`.factory/claims.json`](.factory/claims.json)
 - Build handoff: [`.factory/handoff.md`](.factory/handoff.md)
 - License: [MIT](LICENSE)
