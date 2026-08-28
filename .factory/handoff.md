@@ -40,6 +40,14 @@ Local evidence before handoff:
 - Fresh clone: `npm ci`, then `npm test`: PASS. Every exact command in
   `claims.json` was also run separately: PASS (20 claim IDs; browser claims run
   in both Chromium desktop and mobile projects).
+- Production deployment: `dist/` was deployed directly to Azure Static Web Apps
+  production for `sf-local-file-triage`. The deployed JavaScript identifies
+  build `809c6ee`; the custom domain serves the corrected asset set.
+- Cold live recheck: <https://local-file-triage.sociobot.in/?cold=809c6ee>,
+  `/demo`, `/privacy/`, and `/does-not-exist` all passed. The demo showed its
+  banner and five rows; reset restored the five unapproved default routes;
+  `/demo` had canonical `/demo`; privacy had route OG metadata; 404 returned
+  HTTP 404 with the shared shell; no console errors occurred.
 
 ## Demo
 
@@ -49,4 +57,4 @@ banner supplies **Reset demo** and **Start for real**. See [`demo.md`](demo.md).
 
 ## Known gaps
 
-None. Deployment and cold-live verification are the final work-order steps.
+None.

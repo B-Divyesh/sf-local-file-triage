@@ -4,8 +4,16 @@ Base reviewed: `83aaf1e8b257aeb58193ce5c154f9bdd5b0841df`.
 
 All review findings are fixed in this round. Local evidence is `npm test` (8 unit
 tests, 40 Chromium desktop/mobile Playwright tests), the exact claim commands in
-[`claims.json`](claims.json), and the screenshots in `evidence/`. The final live
-check is recorded in the handoff after deployment.
+[`claims.json`](claims.json), and the screenshots in `evidence/`.
+
+Live recheck: <https://local-file-triage.sociobot.in/?cold=809c6ee> was opened in
+a fresh Chromium context after direct production deployment of commit `809c6ee`.
+The cold home had the corrected title and first screen; `/demo` had canonical
+`/demo`, the persistent banner, five rows, and a working reset; `/privacy/` had
+its route OG title; `/does-not-exist` returned HTTP 404 with header and footer.
+No console errors occurred during the rerun. Live screenshots are
+`evidence/live-home-390.png`, `evidence/live-demo-390.png`, and
+`evidence/live-404-desktop.png`.
 
 | Finding | Change made | Evidence |
 | --- | --- | --- |

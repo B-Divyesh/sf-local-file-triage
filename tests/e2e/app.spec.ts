@@ -37,8 +37,13 @@ test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and 
   await expect(page.getByLabel('Demo mode')).toContainText('Demo — sample data, nothing is saved');
   await expect(page.locator('.file-row')).toHaveCount(5);
   await expect(page.getByText('PRIVATE-tax-record.pdf')).toHaveCount(0);
+  await page.getByLabel('Approve IMG_4821.jpg').check();
+  await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Archives');
   await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.locator('#activity')).toHaveText('Demo reset. The five sample routes are back.');
   await expect(page.locator('.file-row')).toHaveCount(5);
+  await expect(page.locator('.approve input:checked')).toHaveCount(0);
+  await expect(page.getByLabel('Destination bucket for IMG_4821.jpg')).toHaveValue('Photos');
 });
 
 test('@claim:approval-required new routes require an explicit check before they are approved', async ({ page }) => {
