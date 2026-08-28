@@ -3,7 +3,7 @@
 Date: 2026-08-28 UTC
 Work order: `local-file-triage-repair-1`
 Base verifier report: `734e3fc9e8c67e7e70a5e05ba291513bd54c946d`
-Repaired candidate: recorded in the final repair commit.
+Repaired candidate: `8352ad9c871013135fbfe71325821454166dd3ae` (amended below if handoff metadata changes).
 
 ## What changed
 
