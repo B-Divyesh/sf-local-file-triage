@@ -21,7 +21,7 @@ No console errors occurred during the rerun. Live screenshots are
 | F-1-2 | Tested feature-present folder choice and feature-absent preview/plan export. | `@claim:browser-capabilities` |
 | F-1-3 | Documented and enumerated demo/real IndexedDB and license localStorage keys. | `@claim:storage-boundary` |
 | F-1-4 | Added all-route same-origin runtime request coverage. | `@claim:no-tracking-runtime` |
-| F-1-5 | Tested 101-file free limit UI and fixture-verified Pro state; retained exact $19 copy. | `@claim:free-limit` |
+| F-1-5 | Executed a 101-file free run (100 moved, one queued) and a fixture-verified 101-file Pro run; retained exact $19 copy. | `@claim:free-limit` |
 | F-1-6 | Replaced refund promise with observable Sociobot/Dodo checkout wording and tested link/verify origin. | `@claim:checkout-origin` |
 | F-1-7 | Added picker spy coverage; chooser remains explicit-action only. | `@claim:permission-on-action` |
 | F-1-8 | Added exact source timestamp coverage in receipt data and CSV. | `@claim:receipt-original-timestamp` |

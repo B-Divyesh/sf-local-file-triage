@@ -40,6 +40,9 @@ Local evidence before handoff:
 - Fresh clone: `npm ci`, then `npm test`: PASS. Every exact command in
   `claims.json` was also run separately: PASS (20 claim IDs; browser claims run
   in both Chromium desktop and mobile projects).
+- The strengthened `free-limit` claim also passed in Chromium and mobile with
+  real in-memory 101-file moves: free moved 100 and kept one queued; verified
+  Pro moved all 101.
 - Production deployment: `dist/` was deployed directly to Azure Static Web Apps
   production for `sf-local-file-triage`. The deployed JavaScript identifies
   build `809c6ee`; the custom domain serves the corrected asset set.

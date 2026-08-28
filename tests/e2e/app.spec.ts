@@ -202,19 +202,49 @@ test('@claim:no-tracking-runtime every product route loads only same-origin runt
 
 test('@claim:free-limit free runs show a 100-file limit and a fixture license removes it', async ({ page }) => {
   await page.route('https://api.sociobot.in/api/v1/products/local-file-triage/verify?license=fixture-pro', route => route.fulfill({ json: { valid: true } }));
-  await page.goto('/');
-  await page.evaluate(() => {
-    const transfer = new DataTransfer(); for (let index = 0; index < 101; index += 1) transfer.items.add(new File([String(index)], `limit-${index}.txt`, { type: 'text/plain' }));
-    const input = document.querySelector<HTMLInputElement>('#folder-input')!; Object.defineProperty(input, 'files', { configurable: true, value: transfer.files }); input.dispatchEvent(new Event('change', { bubbles: true }));
+  await page.addInitScript(() => {
+    const directory = (name: string): Record<string, unknown> => {
+      const entries = new Map<string, unknown>();
+      return {
+        kind: 'directory', name, entriesMap: entries,
+        async *entries() { yield* entries.entries() as IterableIterator<[string, unknown]>; },
+        async getDirectoryHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = directory(child); entries.set(child, created); return created; },
+        async getFileHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = file(child); entries.set(child, created); return created; },
+        async removeEntry(child: string) { if (!entries.delete(child)) throw new DOMException('Missing', 'NotFoundError'); }
+      };
+    };
+    const file = (name: string): Record<string, unknown> => {
+      let bytes = new Uint8Array([1]);
+      return { kind: 'file', name, async getFile() { return new File([bytes], name, { type: 'text/plain', lastModified: 1_700_000_000_000 }); }, async createWritable() { return { async write(data: ArrayBuffer) { bytes = new Uint8Array(data); }, async close() {} }; } };
+    };
+    const root = directory('Limit folder');
+    for (let index = 0; index < 101; index += 1) (root.entriesMap as Map<string, unknown>).set(`limit-${index}.txt`, file(`limit-${index}.txt`));
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => root });
   });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Choose a folder' }).click();
   await page.getByRole('button', { name: 'Approve displayed (100)' }).click();
   await page.getByRole('button', { name: /Show 100 more/ }).click();
   await page.getByLabel('Approve limit-100.txt').evaluate((input: HTMLInputElement) => input.click());
   await expect(page.getByRole('button', { name: 'Move first 100 approved' })).toBeVisible();
   await expect(page.getByText('Free runs move the first 100.')).toHaveText(/The rest remain safely queued/);
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Move first 100 approved' }).click();
+  await expect(page.getByRole('heading', { name: /100 moved · 0 undone/ })).toBeVisible();
+  await expect(page.locator('.row-status.proposed')).toHaveCount(1);
   await page.getByText('Have a license?').click(); await page.getByLabel('License token').fill('fixture-pro'); await page.getByRole('button', { name: 'Verify license' }).click();
   await expect(page.getByText('Pro unlocked on this device')).toBeVisible();
   await expect(page.getByText('$19 one-time Triagebox Pro license')).toBeVisible();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Survey another folder' }).click();
+  await page.getByRole('button', { name: 'Choose a folder' }).click();
+  await page.getByRole('button', { name: 'Approve displayed (100)' }).click();
+  await page.getByRole('button', { name: /Show 100 more/ }).click();
+  await page.getByLabel('Approve limit-100.txt').evaluate((input: HTMLInputElement) => input.click());
+  await expect(page.getByRole('button', { name: 'Move 101 approved' })).toBeVisible();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Move 101 approved' }).click();
+  await expect(page.getByRole('heading', { name: /101 moved · 0 undone/ })).toBeVisible();
 });
 
 test('@claim:checkout-origin the purchase link and license verification use Sociobot', async ({ page }) => {
