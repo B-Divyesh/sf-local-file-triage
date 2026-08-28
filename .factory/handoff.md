@@ -1,106 +1,56 @@
-# Verification handoff — PASS
+# Review handoff — FAIL
 
 Date: 2026-08-28 UTC
-Verifier work order: `local-file-triage-verify-2`
-Verified candidate: `4376a151d06acf672d56cb6ebfd345689ef4ef3c`
-Verified URL: <https://local-file-triage.sociobot.in>
 
-**PASS — release acceptable.** The live deployment byte-matches this candidate
-for its checked shell files and has no live CSP console failure. Full independent
-evidence, including defects by severity (none), is in
-[verification-2.md](verification-2.md).
+Work order: `local-file-triage-review-1`
+
+Reviewed candidate: `97118147616739fdbc90eaf4cf0ba97235c60be0`
+
+Live URL: <https://local-file-triage.sociobot.in>
+
+The adversarial first-read review is complete. The full evidence and 30 findings
+are in [`review-1.md`](review-1.md). No product code was modified.
+
+## Outcome
+
+- **FAIL** under the required zero-finding standard.
+- The cold first screen passes at 390 px and desktop: job, audience, and first
+  action are clear without scrolling.
+- The one-click demo passes: five realistic rows appear immediately; banner,
+  reset, exit, storage isolation, real-data preservation, offline reload, and
+  same-origin request behavior were confirmed.
+- All 11 declared claim commands pass, but nine broader live/README promises are
+  absent from or narrower than `.factory/claims.json`.
+- Remaining findings also cover per-route metadata, 404 shell consistency,
+  route-change focus, external-link labels, icon/build identity, two sentences
+  over 22 words, jargon, metaphor, and terminology drift.
+- No earlier RB-01 through RB-05 defect regressed.
+
+## Verification performed
+
+From the clean requested commit:
 
 ```sh
 npm ci
+npm run build
+# every exact command in .factory/claims.json, separately
 npm run lint
 npm test
 ```
 
-All 11 declared claim commands passed after the production build. The full suite
-passed: 6/6 unit tests and 22/22 desktop/mobile Playwright tests. Build output
-is `dist/`; initial JS is 11.48 kB gzip, CSS 4.44 kB gzip, and the mobile hero
-is 32 kB.
+Results: lint PASS; Vitest 6/6 PASS; production build PASS; Playwright 22/22 PASS
+across desktop Chromium and Pixel 5. Live axe checks on `/`, `/demo`, `/privacy/`,
+and `/terms/` at both widths found zero WCAG A/AA violations. The live link crawl
+found no dead link. Unknown routes returned HTTP 404.
 
-The independent live check also confirmed the first-screen demo, demo isolation,
-explicit approval, collision-safe move/undo, 1,000-file preview, keyboard and
-axe checks, reduced motion, offline reload, same-origin demo traffic, deployed
-headers/cache policy, and candidate/deployment identity. License verification
-accepted 30 invalid requests then returned 429 with `Retry-After: 4`.
+## Left for the repair round
 
-Known limits: writable moves require desktop Chromium File System Access API;
-browser file APIs cannot restore a copied file's filesystem modified time; and
-`.factory/brief.json` is absent (the supplied researched brief was used).
+Resolve F-1-1 through F-1-30 in order, then rerun the entire checklist rather
+than only the changed areas. The highest-leverage repair is to align all public
+promises with tagged claim tests or narrow the copy. After that, complete route
+metadata/focus/404 structure and apply the exact plain-word rewrites recorded in
+the review.
 
----
-
-# Historical repair handoff
-
-Date: 2026-08-28 UTC
-Work order: `local-file-triage-repair-1`
-Base verifier report: `734e3fc9e8c67e7e70a5e05ba291513bd54c946d`
-Core repair commit: `8352ad9c871013135fbfe71325821454166dd3ae`; this handoff also records the follow-up CSP console correction.
-
-## What changed
-
-- Added the required claim registry, demo documentation, and copy audit. Every
-  listed claim has one `@claim:` regression command.
-- Added a first-screen **Try it with sample data** action and `/demo`. It loads
-  five realistic routes immediately, displays a persistent demo banner, supports
-  reset/start-for-real, and uses IndexedDB key `demo:latest`, separate from the
-  real `latest` record.
-- New proposals are unchecked. Bulk actions now name and affect only the rows
-  currently rendered. Approval, bucket, and filename edits are serialized to
-  IndexedDB so a reload preserves the latest review.
-- Imported manifests with no plan rows keep their receipt and JSON/CSV exports
-  visible. A safely blocked undo remains retryable after the original-path
-  blocker is removed; retry still never overwrites an original file.
-- Added live activity announcements, 44 px mobile approval targets, three-step
-  how-it-works copy, canonical/social metadata, product 404, response-policy and
-  immutable-cache deployment configuration, build ID, and an ESLint gate.
-
-## Verification evidence
-
-Run from a clean dependency install:
-
-```sh
-npm ci
-npm run lint
-npm test
-```
-
-- Unit/integration: 6/6 Vitest tests passed, including default-unapproved and
-  blocked-undo retry filesystem coverage.
-- Browser: 22/22 Playwright tests pass across Desktop Chrome and Pixel 5 (390 px
-  class). They cover the demo boundary/reset, default approval, exact 101-row
-  bulk scope, reload persistence, imported receipt exports, keyboard operation,
-  axe WCAG A/AA serious/critical = 0, touch targets, privacy requests, and
-  offline reload after service-worker installation.
-- Production build: `dist/` generated. Initial JS is 31.24 kB raw / 11.48 kB
-  gzip; CSS is 15.94 kB raw / 4.44 kB gzip; the mobile hero WebP is 32 kB.
-- Local mobile Lighthouse run: performance 98, accessibility 100, LCP 1.74 s,
-  CLS 0. The CLI emitted its result JSON before a post-audit browser-tab crash;
-  the scored report is at `/tmp/triagebox-lighthouse.json` in this worker.
-- Privacy: the claim test intercepts the full demo review flow and observed no
-  third-party request. Optional license traffic remains the disclosed Sociobot
-  exception and is not triggered by demo use.
-- Live post-deploy identity: the public HTML SHA-256 exactly matched `dist`, and
-  `/demo` referenced the same built JS. Manifest MIME, CSP, frame and permissions
-  headers were present; an unknown route returned the designed HTTP 404. The
-  initial live CSP check exposed the former inline fallback as a console error;
-  it is now an external same-origin asset and is included in the final deploy.
-
-## Deploy
-
-Static deployment remains the original artifact class. Deploy `dist/` with the
-included `staticwebapp.config.json`; it carries CSP, frame, permissions,
-referrer, MIME, 404, and immutable asset-cache policy. `/demo` rewrites to the
-same app shell and unknown server routes receive the product 404 response.
-
-## Known limits
-
-- Writable moves still require desktop Chromium File System Access API. Mobile
-  and other browsers retain read-only preview and plan export.
-- Browser filesystem APIs cannot restore a copied file’s modified timestamp;
-  receipts record it instead.
-- `.factory/brief.json` was absent at the verifier base commit, so no brief file
-  was changed during this repair.
+Known repository condition: `.factory/brief.json` is absent, as it was in the
+prior verification. The supplied work-order context and existing design document
+were used as the available source of truth.
