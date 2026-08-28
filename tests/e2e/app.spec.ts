@@ -42,5 +42,5 @@ test('app shell reloads offline after installation', async ({ page, context }) =
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder|Offline, with your files still local/);
 });

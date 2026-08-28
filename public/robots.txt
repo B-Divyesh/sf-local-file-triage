@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://local-file-triage.sociobot.in/sitemap.xml

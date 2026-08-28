@@ -1,5 +1,5 @@
 const CACHE = 'triagebox-shell-v2';
-const SHELL = ['/', '/index.html', '/privacy/', '/terms/', '/offline.html', '/manifest.webmanifest', '/assets/triage-map.webp', '/icons/icon-192.png', '/icons/icon-512.png'];
+const SHELL = ['/', '/index.html', '/privacy/', '/terms/', '/offline.html', '/manifest.webmanifest', '/assets/triage-map-480.webp', '/assets/triage-map.webp', '/assets/triage-map-800.jpg', '/icons/triagebox-mark.svg', '/icons/icon-192.png', '/icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);

@@ -109,6 +109,7 @@ h3 { margin: 0 0 8px; font-size: 24px; line-height: 1.15; }
 .coordinates dd { margin: 2px 0; font: 650 13px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .map-figure { position: relative; margin: 0; transform: rotate(1.2deg); }
 .map-figure::before { position: absolute; inset: 13px -13px -13px 13px; z-index: -1; border: 1px solid var(--line); content: ""; }
+.map-figure picture { display: block; }
 .map-figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); box-shadow: var(--shadow); }
 .map-figure figcaption { position: absolute; right: -16px; bottom: 24px; max-width: 235px; padding: 11px 14px; background: var(--surface); border-left: 3px solid var(--ochre); box-shadow: 0 8px 24px rgb(23 37 31 / 12%); color: var(--muted); font: 600 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; transform: rotate(-1.2deg); }
 
