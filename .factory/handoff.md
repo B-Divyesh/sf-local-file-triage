@@ -1,49 +1,79 @@
-# Review handoff — Triagebox adversarial review 3
+# Repair handoff — Triagebox polish round 3
 
 Date: 2026-08-28 UTC
 
-Work order: `local-file-triage-review-3`
-
-Reviewed commit: `7e6790d0571fe2e6ccd4b8f3fec61dc43c419e78`
+Work order: `local-file-triage-polish-3`
 
 Live product: <https://local-file-triage.sociobot.in>
 
+Deployed product commit: `c3f5248c719f5bef9807ce48d696a40b4b0dc78c`
+
 ## Done
 
-- Wrote [`review-3.md`](review-3.md) with a **FAIL** verdict, 18 findings, a
-  complete landing/README copy audit, all claim results, and a finding-by-finding
-  history recheck.
-- Opened the live site cold at 390×844 and 1440×900, then tested demo entry,
-  reset, real/demo IndexedDB separation, exit cleanup, request locality, and
-  offline reload.
-- Checked route titles, metadata, one-h1/main structure, Back/focus behavior,
-  live links, the true 404, accessibility, console output, and visual identity.
-- Read every earlier review, polish report, handoff, and verification report.
-- Did not modify product code.
+- Closed every finding in `.factory/review-1.md`, `review-2.md`, and
+  `review-3.md`, including reopened F-1-12 and F-2-4.
+- Made the demo a one-click isolated product screen with five immediate sample
+  rows, a persistent banner, reset, real-mode exit, and separate IndexedDB key.
+- Added strict plan import with exact-file matching and safe mismatch behavior.
+- Completed route-specific metadata, history focus, shared 404 chrome, legal
+  links, mobile targets, and focus restoration after rerenders.
+- Rewrote first-screen, README, legal, navigation, and error copy in plain task
+  language. The exact rendered copy audit is now a build gate.
+- Added the 23rd claim for plan import and ran every claim command separately.
+- Preserved the field-paper/topographic identity and original generated map art.
+- Updated `.factory/catalog-description.txt` to the 60-character verb-first line:
+  “Organize a local folder after reviewing every proposed move.”
+- Recorded every finding, change, and evidence path in `.factory/polish-3.md`.
 
 ## Verification
 
-Clean clone: `/tmp/triagebox-review3-clean-t0g8Na` at the reviewed commit.
+Final clean clone: `/tmp/triagebox-polish3-final-5kNCwR` at `c3f5248`.
 
 ```text
 npm ci          PASS — 158 packages, 0 vulnerabilities
 npm run lint    PASS
-npm run build   PASS — dist/ produced
-npm test        PASS — 8/8 Vitest, 48/48 Playwright
-claims          PASS — all 22 exact .factory/claims.json commands
-verify-url.sh   PASS
-live axe        PASS — zero serious/critical findings on checked routes
-live requests   PASS — demo flow and offline reload used same-origin assets only
+npm test        PASS — 10/10 unit, exact copy audit, build, 52/52 browser
+claim commands  PASS — 23/23 exact .factory/claims.json commands
+dist/           PASS — index.html at root; JS 13.31 KB gzip; CSS 4.79 KB gzip
 ```
 
-Temporary evidence is under `/tmp/review3-*`; it is not part of the repository.
+Post-deploy checks on the custom domain:
 
-## Known gaps and next steps
+```text
+Playwright      PASS — 52/52 desktop/mobile tests against production
+Axe CLI         PASS — 0 violations across home, demo, legal routes, and 404
+verify-url.sh   PASS — home and demo; no console errors
+HTTP routing    PASS — home/demo/legal 200; unknown address 404
+offline reload PASS — installed shell reloaded in an offline browser context
+request privacy PASS — no non-product origin during file/demo flows
+Lighthouse      100 performance · 100 accessibility · 100 best practices · 100 SEO
+Web Vitals      LCP 1.4 s · CLS 0 · TBT 60 ms
+```
 
-The product does not pass review. The primary blocker is that `/demo` repeats
-the marketing hero and places its first sample row around y=2397 on a 390×844
-phone. F-1-12 and F-2-4 are also reopened as blocking because the 404 header is
-not shared and the committed copy audit is not exact. Keyboard actions that
-rerender the workbench also drop focus to `BODY` (F-3-15). The remaining claim,
-copy, first-screen-fact, and plan-import findings are specified with concrete
-fixes in `review-3.md`.
+Primary evidence:
+
+- `evidence/polish-3-live-home-390.png`
+- `evidence/polish-3-live-demo-390.png`
+- `evidence/polish-3-live-404-desktop.png`
+- `evidence/axe-polish-3-live/axe-polish-3-live.json`
+- `evidence/lighthouse-polish-3-live.json`
+- `evidence/polish-3-live-home-verify/`
+- `evidence/polish-3-live-demo-verify/`
+
+Deployment `ce758aa5-5fce-4110-bf21-40d72fda7ba0` succeeded in Azure Static
+Web Apps. The custom domain returned HTTPS 200 after deployment.
+
+## Run and verify
+
+```bash
+npm ci
+npm run lint
+npm test
+npm run build
+TRIAGEBOX_TEST_BASE_URL=https://local-file-triage.sociobot.in npm run test:e2e
+```
+
+## Known gaps
+
+None found in the acceptance scope. Every cumulative finding and declared claim
+has passing clean-clone and live evidence.

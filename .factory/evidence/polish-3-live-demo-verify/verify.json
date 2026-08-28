@@ -1,0 +1,14 @@
+{
+  "url": "https://local-file-triage.sociobot.in/?demo=1",
+  "loadMs": 684,
+  "errors": [],
+  "a11y": {
+    "title": "Demo — Triagebox",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 1941
+  }
+}
