@@ -4,7 +4,7 @@
     "claim": "Try the five-file sample without saving it with your local survey",
     "where": "landing action, /demo banner, README",
     "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context; seed a private real IndexedDB survey; open /demo; assert only five sample routes and reset"
+    "sandbox": "fresh browser context; seed a private real IndexedDB survey; enter /demo in one click; assert five sample destinations, reset, exit, and demo-record deletion"
   },
   {
     "id": "approval-required",
@@ -77,6 +77,13 @@
     "sandbox": "manifest with quoted path and error; assert CSV header and escaped row"
   },
   {
+    "id": "receipt-json",
+    "claim": "Receipts export their recorded file actions as JSON",
+    "where": "receipt controls, landing, README",
+    "test": "npm run test:e2e -- --grep @claim:receipt-json",
+    "sandbox": "fresh browser context and one-file writable directory fixture; complete the move, download JSON, parse it, and assert the recorded action"
+  },
+  {
     "id": "real-file-locality",
     "claim": "Selected file details stay in this browser during preview, move, receipt export, and undo",
     "where": "landing, privacy, README",
@@ -103,6 +110,13 @@
     "where": "README",
     "test": "npm run test:e2e -- --grep @claim:no-tracking-runtime",
     "sandbox": "request log across home, demo, privacy, and terms; assert every runtime request is same-origin"
+  },
+  {
+    "id": "installable",
+    "claim": "Supporting browsers receive the manifest and service worker needed to install Triagebox",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:installable",
+    "sandbox": "fresh Chromium context; validate the linked manifest, required icons and standalone start URL, CDP manifest errors, and active controlling service worker"
   },
   {
     "id": "free-limit",

@@ -1,4 +1,4 @@
-const CACHE = 'triagebox-shell-v3';
+const CACHE = 'triagebox-shell-v4';
 const SHELL = ['/', '/index.html', '/boot-fallback.js', '/privacy/', '/terms/', '/offline.html', '/404.html', '/manifest.webmanifest', '/assets/triage-map-480.webp', '/assets/triage-map.webp', '/assets/triage-map-800.jpg', '/assets/triage-social.jpg', '/icons/triagebox-mark.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -12,13 +12,16 @@ self.addEventListener('install', event => {
   })());
 });
 self.addEventListener('activate', event => {
-  event.waitUntil(Promise.all([
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))),
-    self.clients.claim()
-  ]).then(async () => {
-    const clients = await self.clients.matchAll({ type: 'window' });
-    clients.forEach(client => client.postMessage({ type: 'UPDATE_READY' }));
-  }));
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const previousShells = keys.filter(key => key.startsWith('triagebox-shell-') && key !== CACHE);
+    await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+    if (previousShells.length) {
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => client.postMessage({ type: 'UPDATE_READY' }));
+    }
+  })());
 });
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;

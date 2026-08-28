@@ -3,7 +3,7 @@
   "short_name": "Triagebox",
   "description": "Survey and reversibly organize a folder without uploading a file.",
   "id": "/?source=pwa",
-  "start_url": "/?v=1",
+  "start_url": "/?v=2",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f3eedc",

@@ -34,6 +34,17 @@ async function get<T>(key: string): Promise<T | undefined> {
   return value;
 }
 
+async function remove(key: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(STORE, 'readwrite');
+    transaction.objectStore(STORE).delete(key);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
 export interface SavedSurvey {
   rootName: string;
   savedAt: string;
@@ -49,3 +60,4 @@ const surveyKey = (namespace: StorageNamespace) => namespace === 'demo' ? 'demo:
 
 export const saveSurvey = (survey: SavedSurvey, namespace: StorageNamespace = 'real') => put(surveyKey(namespace), survey);
 export const loadSurvey = (namespace: StorageNamespace = 'real') => get<SavedSurvey>(surveyKey(namespace));
+export const clearSurvey = (namespace: StorageNamespace) => remove(surveyKey(namespace));

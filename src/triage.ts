@@ -68,7 +68,7 @@ export function createProposal(file: FileFact, index: number): PlanItem {
     year,
     destinationName: file.name,
     reason: `${detail} · modified ${year}`,
-    // A route is deliberately inert until the person reviewing it checks it.
+    // A proposed move is deliberately inert until the person reviewing it checks it.
     // This is a safety boundary, not merely a presentation preference.
     approved: false,
     status: 'proposed'

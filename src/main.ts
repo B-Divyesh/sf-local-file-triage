@@ -1,7 +1,7 @@
 import './styles.css';
 import { BUCKETS, createProposal, destinationFor, formatBytes, manifestToCsv, safeName, type PlanItem, type TriageManifest } from './triage';
 import { buildManifest, movePlanItem, scanDirectory, scanInputFiles, undoManifest, type DirectoryHandleLike, type SourceMap } from './filesystem';
-import { loadSurvey, saveSurvey, type StorageNamespace } from './storage';
+import { clearSurvey, loadSurvey, saveSurvey, type StorageNamespace } from './storage';
 import { cachedPro, captureReturnedLicense, checkoutUrl, restoreLicense, storedToken, verifyLicense } from './license';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -18,7 +18,7 @@ let isPro = cachedPro();
 let notice = '';
 let demoMode = false;
 let persistQueue: Promise<void> = Promise.resolve();
-const releaseVersion = '1.0.1';
+const releaseVersion = '1.0.2';
 const buildId = import.meta.env.VITE_BUILD_ID || 'development';
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -27,8 +27,8 @@ function shell(content: string): string {
   return `<header class="site-header">
     <a class="brand" href="/" aria-label="Triagebox home"><img src="/icons/triagebox-mark.svg" alt="" width="36" height="36"><span>Triagebox</span></a>
     <nav aria-label="Primary"><a href="/demo">Demo</a><a href="/#workbench">Workbench</a><a href="/#unlock">Upgrade</a></nav>
-  </header>${content}<footer><div><strong>Triagebox</strong><p>Review file moves before they happen.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage" aria-label="View source on GitHub (opens in a new site)">View source on GitHub <span class="sr-only">(opens in a new site)</span></a></nav><p class="provenance">Map artwork generated for Triagebox · 2026 · v${releaseVersion} · build ${escapeHtml(buildId)}</p></footer>
-  <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`;
+  </header><div id="update-notice" class="update-notice" role="status" aria-live="polite" hidden><span></span><button type="button" data-action="dismiss-update" aria-label="Dismiss update notice">Dismiss</button></div>${content}<footer><div><strong>Triagebox</strong><p>Review file moves before they happen.</p></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-local-file-triage" aria-label="View source on GitHub (opens in a new site)">View source on GitHub <span class="sr-only">(opens in a new site)</span></a></nav><p class="provenance">Map artwork generated for Triagebox · 2026 · v${releaseVersion} · build ${escapeHtml(buildId)}</p></footer>
+  <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>`;
 }
 
 function setRouteMetadata(title: string, description: string, canonicalPath: string): void {
@@ -75,8 +75,8 @@ function renderLegal(kind: 'privacy' | 'terms'): void {
     <h2>What crosses the network</h2><p>The app loads from this site. Pro license checks use the Sociobot billing API. Your selected file details are not part of that request.</p>
     <h2>Your control</h2><p>Clear this site’s storage to remove saved surveys and the license token. Exported receipts are files you control. Remove folder permission in browser settings when you are finished.</p>
     <h2>Contact</h2><p>Privacy questions can be sent through the project’s public issue tracker. Do not include private filenames or license tokens.</p>`;
-  const terms = `<p class="eyebrow">Route terms · Effective 28 August 2026</p><h1 tabindex="-1">Review each destination before moving a file.</h1>
-    <p class="lede">Triagebox is a local utility that proposes and performs file moves only after your approval. You remain responsible for reviewing each route and keeping independent backups.</p>
+  const terms = `<p class="eyebrow">File move terms · Effective 28 August 2026</p><h1 tabindex="-1">Review each destination before moving a file.</h1>
+    <p class="lede">Triagebox proposes and performs file moves only after your approval. You must review each destination and keep independent backups.</p>
     <h2>Safe-use agreement</h2><p>The app copies each approved file, checks its byte size, then removes the original. It avoids overwriting collisions and records an undo receipt. Browser APIs cannot restore a copied file’s modified date. The receipt records the original timestamp. Keep a backup for important work.</p>
     <h2>License</h2><p>The free tier includes surveys, edits, exports, undo, and 100 moves per run. Triagebox Pro costs $19 once and removes that limit on the licensed device. Safety and accessibility controls stay free.</p>
     <h2>Purchases</h2><p>The purchase link opens a checkout page hosted by Sociobot/Dodo. That page provides its own purchase terms. A revoked license returns the app to its free move limit. Your local data remains available.</p>
@@ -102,7 +102,7 @@ function stats(): { approved: number; moved: number; failed: number; bytes: numb
 function proposalRows(): string {
   const filtered = visibleItems();
   const shown = filtered.slice(0, visibleCount);
-  if (!shown.length) return `<div class="queue-empty"><span aria-hidden="true">⌖</span><h3>No routes match this search.</h3><p>Clear the filter to see the full survey.</p></div>`;
+  if (!shown.length) return `<div class="queue-empty"><span aria-hidden="true">⌖</span><h3>No proposed destinations match this search.</h3><p>Clear the filter to see the full survey.</p></div>`;
   return `${shown.map(item => `<article class="file-row" data-id="${escapeHtml(item.id)}">
     <label class="approve"><input type="checkbox" data-action="approve" ${item.approved ? 'checked' : ''} ${item.status !== 'proposed' ? 'disabled' : ''}><span class="sr-only">Approve ${escapeHtml(item.name)}</span></label>
     <div class="source"><strong title="${escapeHtml(item.relativePath)}">${escapeHtml(item.name)}</strong><span>${escapeHtml(item.relativePath)} · ${formatBytes(item.size)}</span></div>
@@ -123,7 +123,7 @@ function workbench(): string {
   if (!items.length) return `<section id="workbench" class="workbench empty-workbench" aria-labelledby="workbench-title">
     <div class="section-index">02 / Choose and review a folder</div><h2 id="workbench-title">Open one folder. Nothing moves yet.</h2>
     <p>After you choose a folder, Triagebox suggests a destination from each file’s type and year.</p>
-    <div class="primary-actions"><button class="primary" data-action="scan" ${busy || !fileApi ? 'disabled' : ''}>Choose a folder</button><button data-action="preview" ${busy ? 'disabled' : ''}>Preview a folder</button><button data-action="import-undo" ${busy || !fileApi ? 'disabled' : ''}>Undo from receipt</button><button class="text-button" data-action="example">Try the five-file sample</button></div>
+    <div class="primary-actions"><button class="primary" data-action="scan" ${busy || !fileApi ? 'disabled' : ''}>Choose a folder</button><button data-action="preview" ${busy ? 'disabled' : ''}>Preview a folder</button><button data-action="import-undo" ${busy || !fileApi ? 'disabled' : ''}>Undo from receipt</button><a class="button text-button" href="/demo">Try the five-file sample</a></div>
     ${!fileApi ? '<p class="callout warning"><strong>Read-only browser:</strong> folder write access needs desktop Chrome or Edge. You can still preview and export a plan here.</p>' : ''}
     <input id="folder-input" type="file" webkitdirectory multiple hidden aria-label="Choose a folder for read-only preview">
     <input id="manifest-input" type="file" accept="application/json,.json" hidden aria-label="Choose a Triagebox JSON receipt to undo">
@@ -133,10 +133,10 @@ function workbench(): string {
   return `<section id="workbench" class="workbench" aria-labelledby="workbench-title">
     <div class="workbench-head"><div><div class="section-index">02 / Review this folder · ${escapeHtml(rootName)}</div><h2 id="workbench-title">Review every proposed destination.</h2><p>${previewNote}</p></div><div class="head-actions"><button data-action="import-undo" ${busy || !window.showDirectoryPicker ? 'disabled' : ''}>Undo from receipt</button><button data-action="new-scan">Survey another folder</button></div></div>
     <div class="legend" aria-label="Survey summary"><div><strong>${items.length.toLocaleString()}</strong><span>files mapped</span></div><div><strong>${summary.approved.toLocaleString()}</strong><span>approved</span></div><div><strong>${formatBytes(summary.bytes)}</strong><span>surveyed</span></div><div><strong>${summary.moved.toLocaleString()}</strong><span>moved</span></div></div>
-    <div class="queue-tools"><label class="search"><span>Filter routes</span><input type="search" id="filter" value="${escapeHtml(query)}" placeholder="Name, bucket, or year"></label><div class="bulk"><button data-action="approve-all">Approve displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="approve-none">Clear displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="export-plan">Export plan JSON</button></div></div>
+    <div class="queue-tools"><label class="search"><span>Filter proposed destinations</span><input type="search" id="filter" value="${escapeHtml(query)}" placeholder="Name, bucket, or year"></label><div class="bulk"><button data-action="approve-all">Approve displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="approve-none">Clear displayed (${Math.min(visibleItems().length, visibleCount)})</button><button data-action="export-plan">Export plan JSON</button></div></div>
     <div class="queue-labels" aria-hidden="true"><span>Approve / source</span><span>Reason</span><span>Destination</span><span>Name / status</span></div>
     <div class="file-queue" aria-label="Proposed file moves">${proposalRows()}</div>
-    <div class="action-rail"><div><strong>${summary.approved.toLocaleString()} route${summary.approved === 1 ? '' : 's'} approved</strong><span>${!isPro && summary.approved > 100 ? 'Free runs move the first 100. The rest remain safely queued.' : 'Only checked rows will move.'}</span></div><button class="primary" data-action="execute" ${busy || !writable || summary.approved === 0 ? 'disabled' : ''}>${busy ? 'Working…' : `Move ${!isPro && summary.approved > 100 ? 'first 100' : summary.approved} approved`}</button></div>
+    <div class="action-rail"><div><strong>${summary.approved.toLocaleString()} file move${summary.approved === 1 ? '' : 's'} approved</strong><span>${!isPro && summary.approved > 100 ? 'Free runs move the first 100. The rest remain safely queued.' : 'Only checked rows will move.'}</span></div><button class="primary" data-action="execute" ${busy || !writable || summary.approved === 0 ? 'disabled' : ''}>${busy ? 'Working…' : `Move ${!isPro && summary.approved > 100 ? 'first 100' : summary.approved} approved`}</button></div>
     ${manifest ? receipt() : ''}
     <input id="manifest-input" type="file" accept="application/json,.json" hidden aria-label="Choose a Triagebox JSON receipt to undo">
   </section>`;
@@ -157,9 +157,9 @@ function upgrade(): string {
 
 function render(): void {
   const online = navigator.onLine;
-  const demoBanner = demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span>Sample routes stay separate from your local survey.</span><button data-action="reset-demo">Reset demo</button><a href="/">Start for real</a></aside>' : '';
+  const demoBanner = demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span>Sample destinations stay separate from your local survey.</span><button data-action="reset-demo">Reset demo</button><button class="text-button" data-action="start-real">Start for real</button></aside>' : '';
   app.innerHTML = shell(`${!online ? '<div class="network-note" role="status">Offline map active — local scans and saved receipts still work.</div>' : ''}${demoBanner}<main id="main">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">Organize files locally · No uploads</p><h1 tabindex="-1">Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">For people cleaning a messy folder, Triagebox shows where each file will go before it moves.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See five routes. Nothing is saved.</span></div><dl class="coordinates"><div><dt>File details</dt><dd>Stay in this browser</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs are connected by one deliberate survey route" fetchpriority="high" decoding="async"></picture><figcaption>See every proposed destination before moving a file.</figcaption></figure></section>
+    <section class="hero"><div class="hero-copy"><p class="eyebrow">Organize files locally · No uploads</p><h1 tabindex="-1">Survey the folder.<br><em>Approve every move.</em></h1><p class="lede">For people cleaning a messy folder, Triagebox shows where each file will go before it moves.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See five proposed destinations. Nothing is saved.</span></div><dl class="coordinates"><div><dt>File details</dt><dd>Stay in this browser</dd></div><div><dt>Method</dt><dd>Copy · verify · remove</dd></div><div><dt>Receipt</dt><dd>JSON + CSV</dd></div></dl></div><figure class="map-figure"><picture><source type="image/webp" srcset="/assets/triage-map-480.webp 480w, /assets/triage-map.webp 800w" sizes="(max-width: 680px) 350px, (max-width: 960px) 620px, 42vw"><img src="/assets/triage-map-800.jpg" width="800" height="800" alt="An overhead paper topographic map where scattered file tabs connect to one deliberate destination path" fetchpriority="high" decoding="async"></picture><figcaption>See every proposed destination before moving a file.</figcaption></figure></section>
     <div class="status-line"><span class="status-dot ${busy ? 'busy' : ''}"></span><span id="activity" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(notice || (items.length ? `${items.length.toLocaleString()} files in the current survey` : 'Ready. No folder permission requested yet.'))}</span><span class="coord">51.000° LOCAL / FILE DETAILS STAY HERE</span></div>
     ${workbench()}${upgrade()}</main>`);
   bindEvents();
@@ -202,7 +202,8 @@ async function onAction(event: Event): Promise<void> {
   const action = target.dataset.action;
   if (action === 'scan') await chooseFolder();
   if (action === 'preview') document.querySelector<HTMLInputElement>('#folder-input')?.click();
-  if (action === 'example') await loadExample();
+  if (action === 'start-real' && demoMode) { await clearSurvey('demo'); location.assign('/'); return; }
+  if (action === 'dismiss-update') { document.querySelector<HTMLElement>('#update-notice')!.hidden = true; }
   if (action === 'new-scan') { items = []; sources.clear(); rootHandle = undefined; manifest = undefined; rootName = ''; writable = false; notice = ''; render(); }
   if (action === 'reset-demo' && demoMode) { await loadExample(true); }
   if (action === 'import-undo') document.querySelector<HTMLInputElement>('#manifest-input')?.click();
@@ -220,7 +221,7 @@ function updateApprovalSummary(): void {
   const summary = stats();
   const rail = document.querySelector('.action-rail');
   if (!rail) return;
-  const count = rail.querySelector('strong'); if (count) count.textContent = `${summary.approved.toLocaleString()} route${summary.approved === 1 ? '' : 's'} approved`;
+  const count = rail.querySelector('strong'); if (count) count.textContent = `${summary.approved.toLocaleString()} file move${summary.approved === 1 ? '' : 's'} approved`;
   const detail = rail.querySelector('span'); if (detail) detail.textContent = !isPro && summary.approved > 100 ? 'Free runs move the first 100. The rest remain safely queued.' : 'Only checked rows will move.';
   const button = rail.querySelector('button'); if (button) { button.textContent = `Move ${!isPro && summary.approved > 100 ? 'first 100' : summary.approved} approved`; (button as HTMLButtonElement).disabled = !writable || summary.approved === 0; }
 }
@@ -259,7 +260,7 @@ async function loadExample(reset = false): Promise<void> {
     ['notes.txt', 'text/plain', 9012, 'Desktop/notes.txt']
   ] as const;
   items = examples.map((entry, index) => createProposal({ name: entry[0], type: entry[1], size: entry[2], lastModified: now - index * 31_536_000_000, relativePath: entry[3] }, index));
-  rootName = 'Example folder'; writable = false; rootHandle = undefined; sources.clear(); manifest = undefined; notice = reset ? 'Demo reset. The five sample routes are back.' : 'Example survey loaded in preview mode. No real files are connected.';
+  rootName = 'Sample folder'; writable = false; rootHandle = undefined; sources.clear(); manifest = undefined; notice = reset ? 'Demo reset. The five sample destinations are back.' : 'Five sample destinations loaded. No real files are connected.';
   await persistSurvey(); render();
 }
 
@@ -358,12 +359,16 @@ function renderNotFound(): void {
 
 function registerPwa(): void {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'UPDATE_READY') showToast('Triagebox is ready offline. Refresh to update the app.'); });
+  navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'UPDATE_READY') showUpdateNotice('A newer Triagebox version is ready. Refresh to update the app.'); });
   navigator.serviceWorker.register('/sw.js').catch(() => undefined);
 }
 
-function showToast(message: string): void {
-  const toast = document.querySelector<HTMLElement>('#toast'); if (!toast) return; toast.textContent = message; toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 6000);
+function showUpdateNotice(message: string): void {
+  const notice = document.querySelector<HTMLElement>('#update-notice');
+  const text = notice?.querySelector('span');
+  if (!notice || !text) return;
+  text.textContent = message;
+  notice.hidden = false;
 }
 
 window.addEventListener('online', () => { notice = 'Back online. Local file processing was never interrupted.'; render(); });

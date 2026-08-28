@@ -1,5 +1,29 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import axe from 'axe-core';
+
+async function installWritableFixture(page: Page, filename = 'private-notes.txt'): Promise<void> {
+  await page.addInitScript(name => {
+    let bytes = new Uint8Array([7, 8, 9]);
+    const directory = (directoryName: string): Record<string, unknown> => {
+      const entries = new Map<string, unknown>();
+      return {
+        kind: 'directory', name: directoryName, entriesMap: entries,
+        async *entries() { yield* entries.entries() as IterableIterator<[string, unknown]>; },
+        async getDirectoryHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = directory(child); entries.set(child, created); return created; },
+        async getFileHandle(child: string, options?: { create?: boolean }) { const found = entries.get(child); if (found) return found; if (!options?.create) throw new DOMException('Missing', 'NotFoundError'); const created = file(child); entries.set(child, created); return created; },
+        async removeEntry(child: string) { if (!entries.delete(child)) throw new DOMException('Missing', 'NotFoundError'); }
+      };
+    };
+    const file = (fileName: string): Record<string, unknown> => ({
+      kind: 'file', name: fileName,
+      async getFile() { return new File([bytes], fileName, { type: 'text/plain', lastModified: 1_700_000_000_000 }); },
+      async createWritable() { return { async write(data: ArrayBuffer) { bytes = new Uint8Array(data); }, async close() {} }; }
+    });
+    const root = directory('Private folder');
+    (root.entriesMap as Map<string, unknown>).set(name, file(name));
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => root });
+  }, filename);
+}
 
 test('home explains safety and offers a useful preview workflow', async ({ page }) => {
   const errors: string[] = [];
@@ -8,7 +32,7 @@ test('home explains safety and offers a useful preview workflow', async ({ page 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Survey the folder/);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.getByRole('img')).toHaveAttribute('alt', /topographic map/);
-  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page.locator('.legend > div').first()).toContainText('5files mapped');
   await expect(page.locator('.file-row')).toHaveCount(5);
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Documents');
@@ -32,7 +56,8 @@ test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and 
     });
     db.close();
   });
-  await page.goto('/demo');
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page).toHaveURL(/\/demo$/);
   await expect(page).toHaveTitle('Demo — Triagebox');
   await expect(page.getByLabel('Demo mode')).toContainText('Demo — sample data, nothing is saved');
   await expect(page.locator('.file-row')).toHaveCount(5);
@@ -40,18 +65,27 @@ test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and 
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Archives');
   await page.getByRole('button', { name: 'Reset demo' }).click();
-  await expect(page.locator('#activity')).toHaveText('Demo reset. The five sample routes are back.');
+  await expect(page.locator('#activity')).toHaveText('Demo reset. The five sample destinations are back.');
   await expect(page.locator('.file-row')).toHaveCount(5);
   await expect(page.locator('.approve input:checked')).toHaveCount(0);
   await expect(page.getByLabel('Destination bucket for IMG_4821.jpg')).toHaveValue('Photos');
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('PRIVATE-tax-record.pdf', { exact: true })).toBeVisible();
+  const keys = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open('triagebox-local', 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const result = await new Promise<IDBValidKey[]>((resolve, reject) => { const request = db.transaction('surveys').objectStore('surveys').getAllKeys(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    db.close(); return result;
+  });
+  expect(keys).toEqual(['latest']);
 });
 
-test('@claim:approval-required new routes require an explicit check before they are approved', async ({ page }) => {
+test('@claim:approval-required new file moves require an explicit check before they are approved', async ({ page }) => {
   await page.goto('/demo');
-  await expect(page.getByText('0 routes approved')).toBeVisible();
+  await expect(page.getByText('0 file moves approved')).toBeVisible();
   await expect(page.locator('.approve input:checked')).toHaveCount(0);
   await page.getByLabel('Approve IMG_4821.jpg').check();
-  await expect(page.getByText('1 route approved')).toBeVisible();
+  await expect(page.getByText('1 file move approved')).toBeVisible();
 });
 
 test('@claim:displayed-bulk-controls bulk approval never changes an undisplayed row', async ({ page }) => {
@@ -65,7 +99,7 @@ test('@claim:displayed-bulk-controls bulk approval never changes an undisplayed 
   });
   await expect(page.locator('.file-row')).toHaveCount(100);
   await page.getByRole('button', { name: 'Approve displayed (100)' }).click();
-  await expect(page.getByText('100 routes approved')).toBeVisible();
+  await expect(page.getByText('100 file moves approved')).toBeVisible();
   await page.getByRole('button', { name: /Show 100 more/ }).click();
   await expect(page.locator('.file-row')).toHaveCount(101);
   await expect(page.getByLabel('Approve scan-100.txt')).not.toBeChecked();
@@ -73,7 +107,7 @@ test('@claim:displayed-bulk-controls bulk approval never changes an undisplayed 
 
 test('@claim:review-persistence approvals and destination edits survive a reload', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
+  await page.goto('/demo');
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.getByLabel('Destination bucket for IMG_4821.jpg').selectOption('Archives');
   await page.getByLabel('Destination name for IMG_4821.jpg').fill('revised.jpg');
@@ -154,6 +188,27 @@ test('@claim:real-file-locality selected file details stay local through preview
   expect(external).toEqual([]);
 });
 
+test('@claim:receipt-json a completed move exports a JSON receipt with its recorded action', async ({ page }) => {
+  await installWritableFixture(page, 'json-receipt.txt');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Choose a folder' }).click();
+  await page.getByLabel('Approve json-receipt.txt').check();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Move 1 approved' }).click();
+  await expect(page.getByRole('heading', { name: /1 moved/ })).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^triagebox-.*\.json$/);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const receipt = JSON.parse(Buffer.concat(chunks).toString('utf8')) as { schema: string; rootName: string; actions: Array<Record<string, unknown>> };
+  expect(receipt.schema).toBe('triagebox-manifest-v1');
+  expect(receipt.rootName).toBe('Private folder');
+  expect(receipt.actions).toEqual([expect.objectContaining({ originalPath: 'json-receipt.txt', status: 'moved', size: 3, lastModified: 1_700_000_000_000 })]);
+});
+
 test('@claim:browser-capabilities desktop folder choice is available and read-only preview can export a plan', async ({ page, context }) => {
   await page.addInitScript(() => Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: async () => ({}) }));
   await page.goto('/');
@@ -179,8 +234,12 @@ test('@claim:storage-boundary demo, real survey, and license storage use the doc
   await page.goto('/demo');
   await page.getByLabel('Approve IMG_4821.jpg').check();
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try the five-file sample' }).click();
-  await page.getByText('Example survey loaded in preview mode.').waitFor();
+  await page.evaluate(() => {
+    const transfer = new DataTransfer(); transfer.items.add(new File(['real'], 'real-survey.txt', { type: 'text/plain' }));
+    const input = document.querySelector<HTMLInputElement>('#folder-input')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: transfer.files }); input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.getByText('real-survey.txt', { exact: true }).waitFor();
   await page.getByText('Have a license?').click();
   await page.getByLabel('License token').fill('fixture-license');
   await page.getByRole('button', { name: 'Verify license' }).click();
@@ -198,6 +257,25 @@ test('@claim:no-tracking-runtime every product route loads only same-origin runt
   page.on('request', request => { if (new URL(request.url()).origin !== 'http://127.0.0.1:4173') external.push(request.url()); });
   for (const path of ['/', '/demo', '/privacy/', '/terms/']) { await page.goto(path); await expect(page.locator('main')).toHaveCount(1); }
   expect(external).toEqual([]);
+});
+
+test('@claim:installable supporting Chromium receives a valid app manifest and controlling service worker', async ({ page, context }) => {
+  await page.goto('/');
+  const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
+  expect(manifestHref).toBe('/manifest.webmanifest');
+  const response = await page.request.get(new URL(manifestHref!, page.url()).toString());
+  expect(response.ok()).toBe(true);
+  expect(response.headers()['content-type']).toContain('application/manifest+json');
+  const manifest = await response.json() as { name: string; short_name: string; start_url: string; scope: string; display: string; icons: Array<{ sizes: string; purpose?: string }> };
+  expect(manifest).toEqual(expect.objectContaining({ name: expect.stringContaining('Triagebox'), short_name: 'Triagebox', start_url: '/?v=2', scope: '/', display: 'standalone' }));
+  expect(manifest.icons).toEqual(expect.arrayContaining([expect.objectContaining({ sizes: '192x192' }), expect.objectContaining({ sizes: '512x512', purpose: expect.stringContaining('maskable') })]));
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? '')).toContain('/sw.js');
+  const session = await context.newCDPSession(page);
+  const appManifest = await session.send('Page.getAppManifest');
+  expect(appManifest.url).toContain('/manifest.webmanifest');
+  expect(appManifest.errors).toEqual([]);
 });
 
 test('@claim:free-limit free runs show a 100-file limit and a fixture license removes it', async ({ page }) => {
@@ -266,7 +344,7 @@ test('@claim:permission-on-action folder permission is requested only when Choos
 
 test('has no serious accessibility violations', async ({ page }, testInfo) => {
   await page.goto('/');
-  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Try the five-file sample' }).click();
+  if (testInfo.project.name === 'mobile') await page.goto('/demo');
   await page.addScriptTag({ content: axe.source });
   const results = await page.evaluate(async () => await (window as unknown as { axe: { run(options: { runOnly: string[] }): Promise<{ violations: Array<{ impact: string | null }> }> } }).axe.run({ runOnly: ['wcag2a', 'wcag2aa'] }));
   expect(results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
@@ -280,7 +358,7 @@ test('has no serious accessibility violations', async ({ page }, testInfo) => {
   }
 });
 
-test('keyboard reaches the demo, edits a route, and keeps a visible focus ring', async ({ page }) => {
+test('keyboard reaches the demo, edits a proposed destination, and keeps a visible focus ring', async ({ page }) => {
   await page.goto('/');
   const demo = page.getByRole('link', { name: 'Try it with sample data' });
   await demo.focus();
@@ -293,6 +371,26 @@ test('keyboard reaches the demo, edits a route, and keeps a visible focus ring',
   await expect(approval).toBeChecked();
   const outline = await approval.evaluate(element => getComputedStyle(element).outlineWidth || getComputedStyle(element.parentElement!).outlineWidth);
   expect(outline).not.toBe('0px');
+});
+
+test('cold 390px load keeps all first-screen facts visible and shows no initial update notice', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.waitForTimeout(500);
+  await expect(page.locator('#update-notice')).toBeHidden();
+  const facts = await page.locator('.coordinates').boundingBox();
+  expect(facts).not.toBeNull();
+  expect(facts!.y + facts!.height).toBeLessThanOrEqual(844);
+  await expect(page.locator('.coordinates > div')).toHaveCount(3);
+});
+
+test('user-facing copy uses destination and file move instead of route terminology', async ({ page }) => {
+  for (const path of ['/', '/demo', '/privacy/', '/terms/']) {
+    await page.goto(path);
+    const copy = await page.locator('body').innerText();
+    expect(copy).not.toMatch(/\broutes?\b/i);
+  }
 });
 
 test('demo metadata, route focus, legal metadata, and designed 404 use complete route shells', async ({ page }) => {

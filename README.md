@@ -39,7 +39,8 @@ Other browsers and mobile devices can preview a folder and export a plan.
 Your last survey and receipt use IndexedDB. The demo uses `demo:latest`; real work uses `latest`.
 The optional Pro token and its check result use namespaced localStorage keys.
 There are no analytics, third-party scripts, or CDN fonts.
-You can install the app, and it reloads offline after your first visit.
+Supporting browsers receive the manifest and service worker needed to install Triagebox.
+The app reloads offline after your first visit.
 Read the full [privacy policy](https://local-file-triage.sociobot.in/privacy/) and [terms](https://local-file-triage.sociobot.in/terms/).
 
 ## Free and Pro
