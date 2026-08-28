@@ -1,4 +1,39 @@
-# Repair handoff — ready for release
+# Verification handoff — PASS
+
+Date: 2026-08-28 UTC
+Verifier work order: `local-file-triage-verify-2`
+Verified candidate: `4376a151d06acf672d56cb6ebfd345689ef4ef3c`
+Verified URL: <https://local-file-triage.sociobot.in>
+
+**PASS — release acceptable.** The live deployment byte-matches this candidate
+for its checked shell files and has no live CSP console failure. Full independent
+evidence, including defects by severity (none), is in
+[verification-2.md](verification-2.md).
+
+```sh
+npm ci
+npm run lint
+npm test
+```
+
+All 11 declared claim commands passed after the production build. The full suite
+passed: 6/6 unit tests and 22/22 desktop/mobile Playwright tests. Build output
+is `dist/`; initial JS is 11.48 kB gzip, CSS 4.44 kB gzip, and the mobile hero
+is 32 kB.
+
+The independent live check also confirmed the first-screen demo, demo isolation,
+explicit approval, collision-safe move/undo, 1,000-file preview, keyboard and
+axe checks, reduced motion, offline reload, same-origin demo traffic, deployed
+headers/cache policy, and candidate/deployment identity. License verification
+accepted 30 invalid requests then returned 429 with `Retry-After: 4`.
+
+Known limits: writable moves require desktop Chromium File System Access API;
+browser file APIs cannot restore a copied file's filesystem modified time; and
+`.factory/brief.json` is absent (the supplied researched brief was used).
+
+---
+
+# Historical repair handoff
 
 Date: 2026-08-28 UTC
 Work order: `local-file-triage-repair-1`
