@@ -16,5 +16,9 @@ export default tseslint.config(
         self: 'readonly', caches: 'readonly', fetch: 'readonly', location: 'readonly', URL: 'readonly'
       }
     }
+  },
+  {
+    files: ['public/boot-fallback.js'],
+    languageOptions: { globals: { document: 'readonly', setTimeout: 'readonly' } }
   }
 );

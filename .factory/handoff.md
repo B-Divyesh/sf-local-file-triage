@@ -3,7 +3,7 @@
 Date: 2026-08-28 UTC
 Work order: `local-file-triage-repair-1`
 Base verifier report: `734e3fc9e8c67e7e70a5e05ba291513bd54c946d`
-Repaired candidate: `8352ad9c871013135fbfe71325821454166dd3ae` (amended below if handoff metadata changes).
+Core repair commit: `8352ad9c871013135fbfe71325821454166dd3ae`; this handoff also records the follow-up CSP console correction.
 
 ## What changed
 
@@ -40,14 +40,19 @@ npm test
   bulk scope, reload persistence, imported receipt exports, keyboard operation,
   axe WCAG A/AA serious/critical = 0, touch targets, privacy requests, and
   offline reload after service-worker installation.
-- Production build: `dist/` generated. Initial JS is 31.03 kB raw / 11.42 kB
-  gzip; CSS is 15.74 kB raw / 4.40 kB gzip; the mobile hero WebP is 32 kB.
+- Production build: `dist/` generated. Initial JS is 31.24 kB raw / 11.48 kB
+  gzip; CSS is 15.94 kB raw / 4.44 kB gzip; the mobile hero WebP is 32 kB.
 - Local mobile Lighthouse run: performance 98, accessibility 100, LCP 1.74 s,
   CLS 0. The CLI emitted its result JSON before a post-audit browser-tab crash;
   the scored report is at `/tmp/triagebox-lighthouse.json` in this worker.
 - Privacy: the claim test intercepts the full demo review flow and observed no
   third-party request. Optional license traffic remains the disclosed Sociobot
   exception and is not triggered by demo use.
+- Live post-deploy identity: the public HTML SHA-256 exactly matched `dist`, and
+  `/demo` referenced the same built JS. Manifest MIME, CSP, frame and permissions
+  headers were present; an unknown route returned the designed HTTP 404. The
+  initial live CSP check exposed the former inline fallback as a console error;
+  it is now an external same-origin asset and is included in the final deploy.
 
 ## Deploy
 
