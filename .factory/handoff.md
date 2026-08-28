@@ -13,7 +13,7 @@ Work order: `local-file-triage-polish-1`.
   requests, free/Pro limit presentation, checkout origin, permission timing,
   original timestamps, and recursive inventory.
 - Rewrote first-screen and README copy in plain words. The catalog description is
-  verb-first and 62 characters.
+  verb-first and 65 characters.
 - Added complete demo/legal/404 metadata, route focus and live announcements,
   external-link labels, a 180px touch icon, and commit-derived footer build ID.
 - Preserved the field-paper topographic visual identity and static PWA deployment
@@ -37,8 +37,9 @@ Local evidence before handoff:
   gzip. Both are inside the static-product budget.
 - Screenshots: `evidence/home-390.png`, `evidence/demo-390.png`, and
   `evidence/not-found-desktop.png`.
-- Claim commands: each command in `claims.json` is run separately from a fresh
-  clone after this commit; results and deployment evidence are appended below.
+- Fresh clone: `npm ci`, then `npm test`: PASS. Every exact command in
+  `claims.json` was also run separately: PASS (20 claim IDs; browser claims run
+  in both Chromium desktop and mobile projects).
 
 ## Demo
 
