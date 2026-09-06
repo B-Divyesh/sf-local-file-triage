@@ -310,6 +310,10 @@ footer p { margin: 3px 0; color: var(--muted); }
   .demo-workbench .section-index { display: none; }
 }
 
+@media (max-height: 760px) {
+  .action-rail { position: static; }
+}
+
 @media (max-width: 360px) {
   .site-header { min-height: 126px; flex-wrap: wrap; align-content: center; }
   .site-header nav { width: 100%; justify-content: space-between; }

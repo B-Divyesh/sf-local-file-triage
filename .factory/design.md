@@ -60,6 +60,10 @@ page heading, status, folder summary, filter, and first populated row remain vis
 or directly available in task order. The removed supporting sentence remains in the
 accessibility tree.
 
+On short desktop viewports, the move action follows the queue in normal document
+flow so it cannot cover the last approval control. Taller screens retain the
+sticky desktop action rail.
+
 ## Interaction grammar
 
 - **Survey:** choose a folder; a determinate count and small coordinate readout
