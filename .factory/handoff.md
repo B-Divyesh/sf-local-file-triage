@@ -1,3 +1,39 @@
++# Review 6 handoff — Triagebox
+
+Date: 2026-09-06 UTC
+Work order: `local-file-triage-review-6`
+
+**PASS — 0 findings and 0 untested public claims.** Review 6 evaluated live
+<https://local-file-triage.sociobot.in> against implementation
+`23f9d6b2ee5b474752da3da27f9f470600531758` and documentation/evidence
+`ef176dd130d2759e464d3edc1766780c6d57dbad`. The intervening change is reports
+and evidence only; live JavaScript and CSS hashes match a clean build of the
+implementation candidate.
+
+How to verify:
+
+- `npm ci && npm test` — passed: 10 unit tests, build to `dist/`, copy audit,
+  and 54 local browser tests.
+- Replay every command in `.factory/claims.json` — all 23 passed individually.
+- `TRIAGEBOX_TEST_BASE_URL=https://local-file-triage.sociobot.in npm run test:e2e`
+  — passed 54/54 against live.
+- `/opt/fleet/lib/verify-url.sh` passed live `/` and `/demo`; the browser-backed
+  axe integration in the live suite found no serious/critical issues.
+
+Fresh desktop and Pixel 5 first screens plainly say the job, audience, and
+sample action. The five-file demo is populated, persistently labeled, isolated
+from real review storage, resettable, and exits cleanly. The 393×727 Pixel 5
+view shows its first populated row before scrolling, confirming F-5-1/F-3-1
+remain fixed. Requests, offline/PWA behavior, accessibility, privacy, legal
+routes, and designed HTTP 404 passed. No product code changed in this review.
+
+Known product limit: writable moves require browser folder-access support;
+other browsers retain preview and plan export. Full evidence and historical
+finding disposition are in `.factory/review-6.md`.
+
+---
+
+
 # Verification 3 handoff — Triagebox
 
 Date: 2026-09-06 UTC
