@@ -1,3 +1,32 @@
+# Verification 3 handoff — Triagebox
+
+Date: 2026-09-06 UTC
+
+Work order: `local-file-triage-verify-3`
+
+**PASS — 0 findings and 0 untested public claims.** Independent verification
+reviewed implementation `23f9d6b2ee5b474752da3da27f9f470600531758` and
+documentation/evidence `f3c8d7ff81c12ca13e03ff6c32d473361d699604` at
+<https://local-file-triage.sociobot.in>. The later commit is evidence/docs only;
+the live JS and CSS SHA-256 values match a clean build of the implementation.
+
+Fresh clone verification passed `npm ci`, `npm test` (10 unit tests, build,
+copy audit, 54 browser tests), and all 23 exact claim commands. The live desktop
+and Pixel 5 suite passed 54/54. A fresh first screen plainly names the job,
+audience, and sample action; the sample is populated at once, persistent-labeled,
+resettable, and isolated from real data. Live requests, routes, offline/PWA,
+keyboard/focus, reduced-motion, legal pages, designed 404, headers, and serious/
+critical axe checks passed. The worker URL verifier evidence is in
+`.factory/evidence/verify3-home/` and `.factory/evidence/verify3-demo/`.
+
+Full findings disposition and commands are in `.factory/verification-3.md`.
+No product code changed in this verification. Backend-only checks do not apply
+to this static PWA. The only known product limit remains browser folder-access
+support; unsupported browsers retain the documented preview and plan-export
+path.
+
+---
+
 # Repair handoff — Triagebox
 
 Date: 2026-09-06 UTC
