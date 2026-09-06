@@ -48,7 +48,7 @@ The check fails when any exact string or word count changes. No unit exceeds 22 
 | Review file moves before they happen. | 6 | OK |
 | Terms | 1 | OK |
 | View source on GitHub | 4 | OK |
-| Map artwork generated for Triagebox · 2026 · v1.1.0 · build polish3 | 9 | OK |
+| Map artwork generated for Triagebox · 2026 · v1.1.1 · build repair2 | 9 | OK |
 
 ## Demo route
 

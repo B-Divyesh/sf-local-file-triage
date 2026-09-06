@@ -54,6 +54,12 @@ condensed, and the sticky action rail becomes a safe-area-aware bottom bar. No
 capability is removed on phone, though writable folder access is clearly described
 as a desktop Chromium feature.
 
+On phone viewports 760 px tall or shorter, the demo removes repeated supporting
+labels from the visual flow. The persistent sandbox label, both demo actions,
+page heading, status, folder summary, filter, and first populated row remain visible
+or directly available in task order. The removed supporting sentence remains in the
+accessibility tree.
+
 ## Interaction grammar
 
 - **Survey:** choose a folder; a determinate count and small coordinate readout

@@ -89,6 +89,29 @@ test('@claim:demo-sandbox the /demo route is one-click, seeded, resettable, and 
   expect(keys).toEqual(['latest']);
 });
 
+test('one-click demo shows populated output without scrolling on a short Pixel 5 viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 727 });
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Try it with sample data' }).click();
+
+  const firstRow = page.locator('.file-row').first();
+  await expect(firstRow).toContainText('IMG_4821.jpg');
+  const [rowBox, filenameBox, approvalBox, scrollY] = await Promise.all([
+    firstRow.boundingBox(),
+    page.getByText('IMG_4821.jpg', { exact: true }).first().boundingBox(),
+    page.getByLabel('Approve IMG_4821.jpg').boundingBox(),
+    page.evaluate(() => window.scrollY)
+  ]);
+
+  expect(scrollY).toBe(0);
+  expect(rowBox).not.toBeNull();
+  expect(filenameBox).not.toBeNull();
+  expect(approvalBox).not.toBeNull();
+  expect(Math.min(rowBox!.y + rowBox!.height, 727) - Math.max(rowBox!.y, 0)).toBeGreaterThanOrEqual(100);
+  expect(filenameBox!.y + filenameBox!.height).toBeLessThanOrEqual(727);
+  expect(approvalBox!.y + approvalBox!.height).toBeLessThanOrEqual(727);
+});
+
 test('@claim:approval-required new file moves require an explicit check before they are approved', async ({ page }) => {
   await page.goto('/demo');
   await expect(page.getByText('0 file moves approved')).toBeVisible();

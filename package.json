@@ -1,11 +1,11 @@
 {
   "name": "triagebox",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "VITE_BUILD_ID=polish3 tsc --noEmit && VITE_BUILD_ID=polish3 vite build",
+    "build": "VITE_BUILD_ID=repair2 tsc --noEmit && VITE_BUILD_ID=repair2 vite build",
     "audit:copy": "node scripts/copy-audit.mjs",
     "test:copy": "node scripts/copy-audit.mjs --check",
     "lint": "eslint .",
