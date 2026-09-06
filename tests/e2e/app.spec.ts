@@ -470,16 +470,26 @@ test('keyboard focus survives demo reset, bulk changes, and a new folder action'
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
 });
 
-test('cold 390px load keeps all first-screen facts visible and shows no initial update notice', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('cold Pixel 5 load keeps the job, audience, action, and all first-screen facts visible', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 727 });
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForTimeout(500);
   await expect(page.locator('#update-notice')).toBeHidden();
-  const facts = await page.locator('.coordinates').boundingBox();
-  expect(facts).not.toBeNull();
-  expect(facts!.y + facts!.height).toBeLessThanOrEqual(844);
+  const firstScreen = [
+    page.getByRole('heading', { level: 1 }),
+    page.locator('.hero .lede'),
+    page.getByRole('link', { name: 'Try it with sample data' }),
+    page.locator('.coordinates')
+  ];
+  for (const element of firstScreen) {
+    const box = await element.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(727);
+  }
   await expect(page.locator('.coordinates > div')).toHaveCount(3);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
 test('user-facing copy uses destination and file move instead of route terminology', async ({ page }) => {

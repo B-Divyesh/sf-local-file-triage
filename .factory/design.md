@@ -60,6 +60,10 @@ page heading, status, folder summary, filter, and first populated row remain vis
 or directly available in task order. The removed supporting sentence remains in the
 accessibility tree.
 
+The landing page also tightens its heading and vertical rhythm at that height so
+the job, audience, first action, and privacy, offline, and price facts fit without
+scrolling. Type remains above the mobile body-size floor and touch targets do not shrink.
+
 On short desktop viewports, the move action follows the queue in normal document
 flow so it cannot cover the last approval control. Taller screens retain the
 sticky desktop action rail.
